@@ -172,17 +172,20 @@ def bg(slide: Slide, color: str) -> None:
 def header(slide, spec, th, no):
     label = spec.get("label")
     if label and th.get("pop"):
-        pw = Inches(0.19) * len(label) + Inches(0.5)
-        rect(slide, MARGIN, LABEL_Y + Inches(0.02), pw, Inches(0.36), fill=th["accent"],
-             paras=paragraphs(label, th, size=11, bold=True, color="FFFFFF", align="ctr"))
+        pw = Inches(0.22) * len(label) + Inches(0.6)
+        rect(slide, MARGIN, LABEL_Y + Inches(0.02), pw, Inches(0.42), fill=th["accent"],
+             paras=paragraphs(label, th, size=13, bold=True, color="FFFFFF", align="ctr"))
         if spec.get("label_sub"):
             text(slide, MARGIN + pw + Inches(0.2), LABEL_Y + Inches(0.02), CONTENT_W - pw,
-                 Inches(0.36), paragraphs(spec["label_sub"], th, size=11.5, color=th["muted"]),
+                 Inches(0.42), paragraphs(spec["label_sub"], th, size=14, color=th["muted"]),
                  anchor="middle")
         lead = spec.get("lead") or spec.get("headline")
         if lead:
-            text(slide, MARGIN, LEAD_Y + Inches(0.05), CONTENT_W, LEAD_H,
-                 paragraphs(lead, th, size=fit(lead, 22, 16, 56), bold=True, ls=1.6))
+            n = len(plain(lead))
+            if n > 60:
+                warn(no, f"リード文が{n}字。ポップ版は大きい文字なので45字前後まで削る。")
+            text(slide, MARGIN, LEAD_Y + Inches(0.08), CONTENT_W, LEAD_H,
+                 paragraphs(lead, th, size=fit(lead, 27, 19, 44), bold=True, ls=1.5))
         return
     if label:
         p = paragraphs(label, th, size=SZ["label"], bold=True, spc=1.2)
@@ -204,7 +207,7 @@ def chrome(slide, th, no, label):
     if th.get("pop"):
         if label:
             text(slide, MARGIN, FOOT_Y + Inches(0.05), Inches(6.0), Inches(0.3),
-                 paragraphs(label, th, size=9, color=th["line_dark"]))
+                 paragraphs(label, th, size=10, color=th["line_dark"]))
         rect(slide, SLIDE_W - MARGIN - Inches(0.95), FOOT_Y - Inches(0.02), Inches(0.95),
              Inches(0.34), fill=th["accent_soft"],
              paras=paragraphs(f"{no} / {TOTAL}", th, size=9.5, bold=True, color=th["accent"],
@@ -313,20 +316,22 @@ def l_bullets(slide, spec, th, no):
         warn(no, f"箇条書きが{len(items)}項目。6を超えると読まれない。")
     n = max(len(items), 1)
     if spec.get("numbered"):
-        step = min(Inches(1.05), (BODY_END - body_top(spec)) / n)
+        step = min(Inches(1.2) if th.get("pop") else Inches(1.05), (BODY_END - body_top(spec)) / n)
         y = centered(spec, int(step * (n - 1) + Inches(0.7)))
         for i, it in enumerate(items, 1):
             t = it if isinstance(it, str) else it.get("title", "")
             if th.get("pop"):
-                shape(slide, MARGIN, y + Inches(0.02), Inches(0.5), Inches(0.5),
+                shape(slide, MARGIN, y + Inches(0.02), Inches(0.6), Inches(0.6),
                       fill=hue(th, i - 1), prst="ellipse",
-                      paras=paragraphs(str(i), th, size=15, bold=True, color="FFFFFF",
+                      paras=paragraphs(str(i), th, size=18, bold=True, color="FFFFFF",
                                        align="ctr"))
+                text(slide, MARGIN + Inches(0.9), y, Inches(10.5), Inches(1.0),
+                     paragraphs(t, th, size=fit(t, 22, 15, 36), ls=1.6))
             else:
                 text(slide, MARGIN, y + Inches(0.06), Inches(0.7), Inches(0.4),
                      paragraphs(f"{i:02d}", th, size=14, bold=True, color=th["accent"], spc=0.8))
-            text(slide, MARGIN + Inches(0.8), y, Inches(10.6), Inches(0.9),
-                 paragraphs(t, th, size=fit(t, 18, 13, 44), ls=1.7))
+                text(slide, MARGIN + Inches(0.8), y, Inches(10.6), Inches(0.9),
+                     paragraphs(t, th, size=fit(t, 18, 13, 44), ls=1.7))
             y += step
         return
     step = min(Inches(1.4), (BODY_END - body_top(spec)) / n)
@@ -363,18 +368,26 @@ def l_cards(slide, spec, th, no):
         ix, iw = x + Inches(0.32), w - Inches(0.64)
         cy = y + Inches(0.4)
         if c.get("label"):
-            lw_ = max(Inches(1.25), Inches(0.2) * len(c["label"]) + Inches(0.5))
-            rect(slide, ix, cy, lw_, Inches(0.32), fill=hue(th, i),
-                 paras=paragraphs(c["label"], th, size=10.5, bold=True, color="FFFFFF",
-                                  align="ctr"))
-            cy += Inches(0.55)
+            pop = th.get("pop")
+            lw_ = max(Inches(1.25), Inches(0.22 if pop else 0.2) * len(c["label"]) + Inches(0.55))
+            rect(slide, ix, cy, lw_, Inches(0.36) if pop else Inches(0.32), fill=hue(th, i),
+                 paras=paragraphs(c["label"], th, size=12 if pop else 10.5, bold=True,
+                                  color="FFFFFF", align="ctr"))
+            cy += Inches(0.6) if pop else Inches(0.55)
         t = c.get("title", "")
-        text(slide, ix, cy, iw, Inches(1.1),
-             paragraphs(t, th, size=fit(t, 19, 13, 22), bold=True, ls=1.4))
+        pop = th.get("pop")
+        text(slide, ix, cy, iw, Inches(1.2 if pop else 1.1),
+             paragraphs(t, th, size=fit(t, 22 if pop else 19, 14, 18 if pop else 22), bold=True,
+                        ls=1.35))
         if c.get("body"):
-            text(slide, ix, cy + Inches(1.15), iw, int(y + h - cy - Inches(1.5)),
-                 paragraphs(c["body"], th, size=12.5 if th.get("pop") else SZ["body"],
-                            color=th["ink"] if th.get("pop") else th["muted"], ls=1.8))
+            bsz = (15 if n <= 3 else 13.5) if pop else SZ["body"]
+            text(slide, ix, cy + Inches(1.25 if pop else 1.15), iw,
+                 int(y + h - cy - Inches(1.5)),
+                 paragraphs(c["body"], th, size=bsz,
+                            color=th["ink"] if pop else th["muted"], ls=1.7))
+            if pop and len(plain(c["body"])) > (75 if n <= 3 else 60):
+                warn(no, f"カード{i + 1}の本文が{len(plain(c['body']))}字。ポップ版は"
+                         f"{'75' if n <= 3 else '60'}字までに削る。")
             if len(c["body"]) > 110:
                 warn(no, f"カード{i + 1}の本文が{len(c['body'])}字。80字前後まで削る。")
 
@@ -613,9 +626,9 @@ def l_kpi(slide, spec, th, no):
         if boxed:
             rect(slide, x, y, w, bh, fill=tint(th, i))
         ix, iw = (x + Inches(0.34), w - Inches(0.68)) if boxed else (x, w)
-        text(slide, ix, y + Inches(0.2), iw, Inches(0.3),
-             paragraphs(it.get("label", ""), th, size=11, bold=True, color=th["muted"],
-                        spc=0.8))
+        text(slide, ix, y + Inches(0.2), iw, Inches(0.35),
+             paragraphs(it.get("label", ""), th, size=13.5 if th.get("pop") else 11, bold=True,
+                        color=th["ink"] if th.get("pop") else th["muted"], spc=0.8))
         v = str(it.get("value", ""))
         vsize = fit(v + str(it.get("to", "")), 54, 26, 7 if it.get("to") else 5)
         runs = [_run(v, th, vsize, True, hue(th, i) if (boxed and not it.get("to")) else th["ink"])]
@@ -629,10 +642,12 @@ def l_kpi(slide, spec, th, no):
              [{"align": "l", "ls": 1.0, "after": 0, "size": vsize, "runs": runs}])
         if it.get("sub"):
             text(slide, ix, y + Inches(1.7), iw, Inches(0.5),
-                 paragraphs(it["sub"], th, size=11, color=th["muted"], ls=1.5))
+                 paragraphs(it["sub"], th, size=13 if th.get("pop") else 11, color=th["muted"],
+                            ls=1.5))
     if spec.get("note"):
         text(slide, MARGIN, y + bh + Inches(0.2), CONTENT_W, Inches(0.4),
-             paragraphs(spec["note"], th, size=9, color=th["line_dark"]))
+             paragraphs(spec["note"], th, size=11.5 if th.get("pop") else 9,
+                        color=th["muted"] if th.get("pop") else th["line_dark"]))
 
 
 def l_table(slide, spec, th, no):
@@ -657,7 +672,7 @@ def l_table(slide, spec, th, no):
     hi = spec.get("highlight")
     for j, col in enumerate(cols):
         text(slide, xs[j] + (Inches(0.1) if th.get("pop") else 0), y, cws[j] - Inches(0.14), rowh,
-             paragraphs(str(col), th, size=11, bold=True,
+             paragraphs(str(col), th, size=12.5 if th.get("pop") else 11, bold=True,
                         color=th["accent"] if th.get("pop") else th["muted"], spc=0.8),
              anchor="middle")
     rect(slide, MARGIN, y + rowh - Pt(1), CONTENT_W, Pt(2),
@@ -670,15 +685,15 @@ def l_table(slide, spec, th, no):
         for j in range(len(cols)):
             text(slide, xs[j] + (Inches(0.1) if me else 0), ry,
                  cws[j] - Inches(0.14) - (Inches(0.1) if me else 0), rowh,
-                 paragraphs(str(row[j]) if j < len(row) else "", th, size=13, bold=me,
-                            ls=1.5), anchor="middle")
+                 paragraphs(str(row[j]) if j < len(row) else "", th,
+                            size=15 if th.get("pop") else 13, bold=me, ls=1.45), anchor="middle")
         if i < len(rows) - 1:
             rect(slide, MARGIN, ry + rowh - Pt(0.4), CONTENT_W, Pt(0.75), fill=th["line"],
                  square=True)
         ry += rowh
     if spec.get("note"):
         text(slide, MARGIN, y + h + Inches(0.2), CONTENT_W, Inches(0.5),
-             paragraphs(spec["note"], th, size=9.5, color=th["muted"]))
+             paragraphs(spec["note"], th, size=11.5 if th.get("pop") else 9.5, color=th["muted"]))
 
 
 def l_timeline(slide, spec, th, no):
@@ -699,12 +714,13 @@ def l_timeline(slide, spec, th, no):
     for m in months:
         k = int(m.get("weeks", 4))
         rect(slide, x0 + col * cw, y, cw * k, mh, fill=th["accent_soft"], square=True,
-             paras=paragraphs(m.get("name", ""), th, size=13, bold=True, color=th["accent"],
-                              align="ctr"))
+             paras=paragraphs(m.get("name", ""), th, size=15 if th.get("pop") else 13, bold=True,
+                              color=th["accent"], align="ctr"))
         for j in range(k):
             lab = m.get("labels", ["1W", "2W", "3W", "4W", "5W"])[j] if j < 5 else f"{j + 1}W"
             rect(slide, x0 + (col + j) * cw, y + mh, cw, wh, line=th["line"], lw=0.75,
-                 paras=paragraphs(lab, th, size=10, color=th["muted"], align="ctr"), square=True)
+                 paras=paragraphs(lab, th, size=11 if th.get("pop") else 10, color=th["muted"],
+                                  align="ctr"), square=True)
         col += k
     top = y + mh + wh
     bottom = Inches(6.30) if note else Inches(6.55)
@@ -718,8 +734,8 @@ def l_timeline(slide, spec, th, no):
         rows = g.get("rows", [])
         gh = int(rh * len(rows))
         rect(slide, gx0, ry, gw0, gh, fill=tint(th, gi),
-             paras=paragraphs(g.get("label", ""), th, size=10, bold=True, color=hue(th, gi),
-                              align="ctr"))
+             paras=paragraphs(g.get("label", ""), th, size=12 if th.get("pop") else 10, bold=True,
+                              color=hue(th, gi), align="ctr"))
         for r in rows:
             for b in r.get("bars", []):
                 st, sp = int(b.get("start", 0)), max(1, int(b.get("span", 1)))
@@ -729,7 +745,8 @@ def l_timeline(slide, spec, th, no):
                 rect(slide, x0 + st * cw + Inches(0.03), ry + rh / 2 - bh / 2,
                      cw * sp - Inches(0.06), bh, fill=col,
                      paras=paragraphs(b.get("text", ""), th,
-                                      size=fit(b.get("text", ""), 10.5, 7.5, int(2.2 * sp) or 2),
+                                      size=fit(b.get("text", ""), 12 if th.get("pop") else 10.5,
+                                               8, int(2.4 * sp) or 2),
                                       bold=True, color=tc, align="ctr"))
             ry += rh
     for ms in spec.get("milestones", []):
@@ -738,10 +755,11 @@ def l_timeline(slide, spec, th, no):
              paragraphs("★", th, size=15, color=th["accent"], align="ctr"))
         if ms.get("text"):
             text(slide, mx - Inches(0.95), top + Inches(0.36), Inches(1.9), Inches(0.3),
-                 paragraphs(ms["text"], th, size=8, color=th["muted"], ls=1.25, align="ctr"))
+                 paragraphs(ms["text"], th, size=9.5 if th.get("pop") else 8, color=th["muted"],
+                            ls=1.25, align="ctr"))
     if note:
         text(slide, gx0, Inches(6.45), CONTENT_W, Inches(0.4),
-             paragraphs(note, th, size=9.5, color=th["muted"]))
+             paragraphs(note, th, size=11 if th.get("pop") else 9.5, color=th["muted"]))
 
 
 def l_quote(slide, spec, th, no):
