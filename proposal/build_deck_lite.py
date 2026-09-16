@@ -95,6 +95,7 @@ class Slide:
         self.shapes: list[str] = []
         self.bg_color = th["paper"]
         self.notes = ""
+        self.no_chrome = False       # 全面色のページは自前でフッターを描く
         self._id = 1
 
     def nid(self) -> int:
@@ -998,6 +999,11 @@ def l_solo(slide, spec, th, no):
     ink = th["ink"] if (flood is None or on_light) else "FFFFFF"
     if flood:
         bg(slide, flood)
+        # 全面色のときは、共通フッターの薄いグレーが沈むので自前で描く
+        slide.no_chrome = True
+        text(slide, SLIDE_W - MARGIN - Inches(1.0), FOOT_Y + Inches(0.02), Inches(1.0),
+             Inches(0.3), paragraphs(str(no), th, size=12, bold=True, color=ink, align="r",
+                                     spc=0.5))
     if spec.get("label"):
         text(slide, MARGIN, LABEL_Y + Inches(0.04), CONTENT_W, Inches(0.36),
              paragraphs(spec["label"], th, size=13, bold=True, color=ink, spc=1.5))
@@ -1426,7 +1432,7 @@ def build(deck: dict, out: Path, html_out: Path | None = None) -> None:
             raise SystemExit(f"p.{i}: 未知の layout '{kind}'。使えるのは: {', '.join(sorted(LAYOUTS))}")
         s = Slide(th)
         fn(s, spec, th, i)
-        if kind not in NO_CHROME:
+        if kind not in NO_CHROME and not s.no_chrome:
             chrome(s, th, i, foot)
         n_chars = spec_chars(spec)
         char_total.append(n_chars)
