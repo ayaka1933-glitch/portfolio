@@ -986,6 +986,88 @@ def l_tweets(slide, spec, th, no):
             warn(no, f"投稿{k + 2}が70字超。ツイートは一息で読める長さに。")
 
 
+def l_flow(slide, spec, th, no):
+    """手順の図。枠の箱を矢印でつなぐ。emph の箱だけ黄色で塗る。"""
+    header(slide, spec, th, no)
+    steps = spec.get("steps", [])
+    n = len(steps)
+    if not n:
+        return
+    if n > 5:
+        warn(no, f"ステップが{n}個。横一列は5つまで。")
+    gap = Inches(0.62)
+    w = int((CONTENT_W - gap * (n - 1)) / n)
+    bh = Inches(1.75)
+    top = body_top(spec)
+    bottom = body_end(spec) - (Inches(0.5) if spec.get("note") else 0)
+    y = int(top + max(0, (bottom - top - bh) / 2))
+    for i, st in enumerate(steps):
+        x = MARGIN + i * (w + gap)
+        if st.get("above"):
+            text(slide, x, y - Inches(0.45), w, Inches(0.34),
+                 paragraphs(st["above"], th, size=12, bold=True, color=th["muted"], spc=0.8,
+                            align="ctr"))
+        emph = st.get("emph")
+        t = st.get("title", "")
+        rect(slide, x, y, w, bh, fill=th["marker"] if emph else th["paper"],
+             line=None if emph else th["ink"], lw=2.0,
+             paras=paragraphs(t, th, size=fit(t, 21, 14, 14), bold=True, ls=1.3, align="ctr"))
+        if st.get("body"):
+            text(slide, x, y + bh + Inches(0.18), w, Inches(0.9),
+                 paragraphs(st["body"], th, size=12.5, color=th["muted"], ls=1.5, align="ctr"))
+        if i < n - 1:
+            shape(slide, x + w + Inches(0.14), y + bh / 2 - Inches(0.075),
+                  gap - Inches(0.28), Inches(0.15), fill=th["ink"], prst="rightArrow",
+                  adj={"adj1": 50000, "adj2": 55000})
+    if spec.get("note"):
+        text(slide, MARGIN, bottom + Inches(0.25), CONTENT_W, Inches(0.4),
+             paragraphs(spec["note"], th, size=11.5, color=th["muted"]))
+    close_line(slide, spec, th)
+
+
+def l_rings(slide, spec, th, no):
+    """同心円の図＋右に条件の一覧。「この範囲で、この条件で」を1枚で見せる。"""
+    header(slide, spec, th, no)
+    top = body_top(spec)
+    bottom = body_end(spec) - (Inches(0.45) if spec.get("note") else 0)
+    cy = int((top + bottom) / 2)
+    cx = MARGIN + Inches(2.55)
+    rings = spec.get("rings", [])
+    d0 = min(Inches(3.9), int(bottom - top))
+    for i, r in enumerate(rings):
+        d = int(d0 * (1 - i * 0.42))
+        shape(slide, cx - d / 2, cy - d / 2, d, d, fill=tint(th, i), prst="ellipse")
+        if r.get("text"):
+            text(slide, int(cx - d / 2), int(cy - d / 2 + Inches(0.16)), int(d), Inches(0.34),
+                 paragraphs(r["text"], th, size=13.5, bold=True, color=th["ink"], align="ctr"))
+    if spec.get("center"):
+        dc = Inches(1.2)
+        shape(slide, cx - dc / 2, cy - dc / 2, dc, dc, fill=th["ink"], prst="ellipse",
+              paras=paragraphs(spec["center"], th, size=13, bold=True, color="FFFFFF",
+                               align="ctr"))
+    items = spec.get("items", [])
+    if items:
+        ix = MARGIN + Inches(5.6)
+        iw = SLIDE_W - MARGIN - ix
+        step = min(Inches(0.92), int((bottom - top) / max(len(items), 1)))
+        iy = int(top + max(0, (bottom - top - step * len(items)) / 2))
+        for i, it in enumerate(items):
+            t = it if isinstance(it, str) else it.get("title", "")
+            b = "" if isinstance(it, str) else it.get("body", "")
+            rect(slide, ix, iy + Inches(0.14), Inches(0.16), Inches(0.16), fill=hue(th, i),
+                 square=True)
+            text(slide, ix + Inches(0.4), iy, iw - Inches(0.4), Inches(0.42),
+                 paragraphs(t, th, size=18, bold=True))
+            if b:
+                text(slide, ix + Inches(0.4), iy + Inches(0.44), iw - Inches(0.4), Inches(0.4),
+                     paragraphs(b, th, size=13, color=th["muted"], ls=1.4))
+            iy += step
+    if spec.get("note"):
+        text(slide, MARGIN, bottom + Inches(0.2), CONTENT_W, Inches(0.4),
+             paragraphs(spec["note"], th, size=11.5, color=th["muted"]))
+    close_line(slide, spec, th)
+
+
 def l_solo(slide, spec, th, no):
     """1ページに1項目だけ、大きく出す。番号＋一言＋補足。
 
@@ -1076,6 +1158,7 @@ LAYOUTS = {
     "journey": l_journey, "cols": l_cols, "keymessage": l_keymessage, "idea": l_idea,
     "plan": l_plan, "kpi": l_kpi, "table": l_table, "timeline": l_timeline,
     "quote": l_quote, "orgchart": l_orgchart, "tweets": l_tweets, "solo": l_solo,
+    "flow": l_flow, "rings": l_rings,
     "closing": l_closing,
 }
 NO_CHROME = {"cover", "closing", "idea", "keymessage"}
