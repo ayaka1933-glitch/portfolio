@@ -64,11 +64,14 @@ THEMES = {
              "paper": "FFFFFF", "ink": "14141A", "muted": "6B6B76", "line": "E7E7EE",
              "line_dark": "A3A3AE", "quote_bg": "F2F2F6", "marker": "FFD93D",
              "hues": ["00C4B3", "FFD93D", "FF5C77", "6C5CE7"],
-             "tints": ["E6F7F5", "FFF6CC", "FFE3E8", "E8E5FB"]},
+             "tints": ["E6F7F5", "FFF6CC", "FFE3E8", "E8E5FB"],
+             # 表紙・扉・締めだけラブリーに。本文のページは白地のまま
+             "love_bg": "FFF1F4", "love_ink": "C9184A",
+             "font_display": "Hiragino Maru Gothic ProN"},
 }
 ROUNDED = False          # pop テーマのとき True。rect() が角丸になる
 TOTAL = 0                # 総ページ数（フッターの「3 / 10」用）
-BASE = {"font": "Yu Gothic", "font_medium": "Yu Gothic Medium",
+BASE = {"font": "Yu Gothic", "font_medium": "Yu Gothic Medium", "font_display": None,
         "paper": "FFFFFF", "ink": "14141A", "muted": "6B6B76", "line": "E7E7EE",
         "line_dark": "A3A3AE", "quote_bg": "F2F2F2", "marker": "FFD93D", "neg": "FF5C77"}
 
@@ -169,6 +172,31 @@ def hue(th, i):
 
 def tint(th, i):
     return th["tints"][i % len(th["tints"])] if th.get("tints") else th["accent_soft"]
+
+
+def lighten(hexcolor: str, ratio: float) -> str:
+    """色を白に寄せる。飾りのハートを地の色より薄くするのに使う。"""
+    r, g, b = (int(hexcolor[i:i + 2], 16) for i in (0, 2, 4))
+    f = lambda v: min(255, int(v + (255 - v) * ratio))
+    return f"{f(r):02X}{f(g):02X}{f(b):02X}"
+
+
+# 文字を避けて、右側と四隅に散らす（x, y, 大きさ[inch], 濃いほう=True）
+HEART_SPOTS = [(0.71, 0.10, 1.15, False), (0.88, 0.30, 0.62, True),
+               (0.79, 0.53, 0.92, True), (0.94, 0.71, 0.48, False),
+               (0.65, 0.79, 0.66, False), (0.04, 0.06, 0.45, True),
+               (0.15, 0.03, 0.28, False), (0.03, 0.62, 0.72, False),
+               (0.44, 0.94, 0.36, True)]
+
+
+def hearts(slide, base: str, on_color: bool) -> None:
+    """ハートの飾りを撒く。on_color=True は全面色のページ（地より薄い同系色）。"""
+    soft = lighten(base, 0.58 if on_color else 0.62)
+    deep = lighten(base, 0.34 if on_color else 0.38)
+    for fx, fy, d, strong in HEART_SPOTS:
+        size = Inches(d)
+        shape(slide, int(SLIDE_W * fx - size / 2), int(SLIDE_H * fy - size / 2), size, size,
+              fill=deep if strong else soft, prst="heart")
 
 
 def bg(slide: Slide, color: str) -> None:
@@ -276,21 +304,24 @@ def close_line(slide, spec, th):
 # ------------------------------------------------ レイアウト
 def l_cover(slide, spec, th, no):
     if th.get("bold"):
-        bg(slide, th["hues"][1])
+        rose = th.get("love_ink", th["accent"])
+        bg(slide, th.get("love_bg", th["hues"][1]))
+        hearts(slide, th["hues"][2], False)
+        disp = th.get("font_display")
         if spec.get("client"):
             text(slide, MARGIN, Inches(0.7), CONTENT_W, Inches(0.4),
-                 paragraphs(spec["client"], th, size=14, bold=True, spc=1.5))
+                 paragraphs(spec["client"], th, size=14, bold=True, color=rose, spc=1.5))
         title = spec.get("title", "")
-        text(slide, MARGIN, Inches(1.5), CONTENT_W, Inches(4.3),
-             paragraphs(title, th, size=fit(title, 80, 44, 12), bold=True, ls=1.05),
-             anchor="middle")
+        text(slide, MARGIN, Inches(1.5), Inches(8.6), Inches(4.3),
+             paragraphs(title, th, size=fit(title, 80, 44, 12), bold=True, color=rose,
+                        ls=1.08, font=disp), anchor="middle")
         if spec.get("sub"):
-            text(slide, MARGIN, Inches(5.7), CONTENT_W, Inches(0.5),
-                 paragraphs(spec["sub"], th, size=18, medium=True))
+            text(slide, MARGIN, Inches(5.7), Inches(8.6), Inches(0.5),
+                 paragraphs(spec["sub"], th, size=18, medium=True, font=disp))
         meta = " ／ ".join(v for v in (spec.get("date"), spec.get("company")) if v)
         if meta:
             text(slide, MARGIN, Inches(6.5), CONTENT_W, Inches(0.4),
-                 paragraphs(meta, th, size=13, bold=True, spc=1.2))
+                 paragraphs(meta, th, size=13, bold=True, color=th["muted"], spc=1.2))
         return
     if th.get("pop"):
         bg(slide, th["accent"])
@@ -1081,6 +1112,7 @@ def l_solo(slide, spec, th, no):
     ink = th["ink"] if (flood is None or on_light) else "FFFFFF"
     if flood:
         bg(slide, flood)
+        hearts(slide, flood, True)
         # 全面色のときは、共通フッターの薄いグレーが沈むので自前で描く
         slide.no_chrome = True
         text(slide, SLIDE_W - MARGIN - Inches(1.0), FOOT_Y + Inches(0.02), Inches(1.0),
@@ -1106,8 +1138,8 @@ def l_solo(slide, spec, th, no):
         text(slide, MARGIN, y, int(nw), int(block),
              paragraphs(n, th, size=132, bold=True, color=nc, ls=1.0), anchor="middle")
     text(slide, int(tx), y, int(tw), int(block * 0.62),
-         paragraphs(title, th, size=fit(title, 80, 40, 8), bold=True, color=ink, ls=1.15),
-         anchor="bottom")
+         paragraphs(title, th, size=fit(title, 80, 40, 8), bold=True, color=ink, ls=1.15,
+                    font=th.get("font_display") if flood else None), anchor="bottom")
     if body:
         text(slide, int(tx), int(y + block * 0.68), int(tw), int(block * 0.34),
              paragraphs(body, th, size=fit(body, 18, 14, 46), color=ink, ls=1.55))
@@ -1115,16 +1147,20 @@ def l_solo(slide, spec, th, no):
 
 def l_closing(slide, spec, th, no):
     if th.get("bold"):
-        bg(slide, th["hues"][1])
+        rose = th.get("love_ink", th["accent"])
+        bg(slide, th.get("love_bg", th["hues"][1]))
+        hearts(slide, th["hues"][2], False)
+        disp = th.get("font_display")
         if spec.get("label"):
             text(slide, MARGIN, Inches(0.7), CONTENT_W, Inches(0.4),
-                 paragraphs(spec["label"], th, size=14, bold=True, spc=1.5))
+                 paragraphs(spec["label"], th, size=14, bold=True, color=rose, spc=1.5))
         t = spec.get("text") or spec.get("headline", "")
-        text(slide, MARGIN, Inches(2.0), CONTENT_W, Inches(3.0),
-             paragraphs(t, th, size=fit(t, 60, 32, 16), bold=True, ls=1.12), anchor="middle")
+        text(slide, MARGIN, Inches(2.0), Inches(9.4), Inches(3.0),
+             paragraphs(t, th, size=fit(t, 60, 32, 16), bold=True, color=rose, ls=1.15,
+                        font=disp), anchor="middle")
         if spec.get("sub"):
-            text(slide, MARGIN, Inches(5.2), CONTENT_W, Inches(1.0),
-                 paragraphs(spec["sub"], th, size=18, medium=True, ls=1.45))
+            text(slide, MARGIN, Inches(5.2), Inches(9.4), Inches(1.0),
+                 paragraphs(spec["sub"], th, size=18, medium=True, ls=1.45, font=disp))
         return
     if th.get("pop"):
         bg(slide, th["accent"])
@@ -1358,7 +1394,17 @@ def _shape_html(sh: dict) -> str:
             st += (f'box-shadow:inset 0 0 0 {sh["lw"] * 96 / 72:.2f}px #{sh["line"]};'
                    if not sh["dash"] else
                    f'outline:{sh["lw"] * 96 / 72:.2f}px dashed #{sh["line"]};outline-offset:-1px;')
-        if sh["prst"] == "ellipse":
+        if sh["prst"] == "heart":
+            path = ("M50,88 C20,66 8,48 8,34 C8,20 18,12 30,12 C38,12 46,17 50,24 "
+                    "C54,17 62,12 70,12 C82,12 92,20 92,34 C92,48 80,66 50,88 Z")
+            svg = ('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">'
+                   f'<path d="{path}" fill="#{sh["fill"]}"/></svg>')
+            for a, b in (("<", "%3C"), (">", "%3E"), ('"', "%22"), ("#", "%23"), (" ", "%20")):
+                svg = svg.replace(a, b)
+            st = st.replace(f"background:#{sh['fill']};", "")
+            st += (f"background-image:url(data:image/svg+xml,{svg});"
+                   "background-size:100% 100%;background-repeat:no-repeat;")
+        elif sh["prst"] == "ellipse":
             st += "border-radius:50%;"
         elif sh["prst"] == "roundRect":
             r = sh["adj"].get("adj", 16667) / 100000 * min(sh["w"], sh["h"]) * PX
