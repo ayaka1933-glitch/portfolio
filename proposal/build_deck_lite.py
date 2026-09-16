@@ -190,7 +190,7 @@ def header(slide, spec, th, no):
             if n > 70:
                 warn(no, f"リード文が{n}字。2行に収まる60字前後まで削る。")
             text(slide, MARGIN, LEAD_Y + Inches(0.02), CONTENT_W, LEAD_H,
-                 paragraphs(lead, th, size=fit(lead, 22, 16, 56), medium=True, ls=1.65))
+                 paragraphs(lead, th, size=fit(lead, 22, 16, 56), medium=True, ls=1.4))
         return
     if label and th.get("pop"):
         pw = Inches(0.22) * len(label) + Inches(0.6)
@@ -269,7 +269,7 @@ def close_line(slide, spec, th):
     if not t:
         return
     text(slide, MARGIN, BODY_END - Inches(1.0), CONTENT_W, Inches(1.0),
-         paragraphs(t, th, size=fit(t, 28, 20, 30), bold=True, ls=1.4), anchor="bottom")
+         paragraphs(t, th, size=fit(t, 28, 20, 30), bold=True, ls=1.25), anchor="bottom")
 
 
 # ------------------------------------------------ レイアウト
@@ -281,7 +281,7 @@ def l_cover(slide, spec, th, no):
                  paragraphs(spec["client"], th, size=14, bold=True, spc=1.5))
         title = spec.get("title", "")
         text(slide, MARGIN, Inches(1.5), CONTENT_W, Inches(4.3),
-             paragraphs(title, th, size=fit(title, 80, 44, 12), bold=True, ls=1.12),
+             paragraphs(title, th, size=fit(title, 80, 44, 12), bold=True, ls=1.05),
              anchor="middle")
         if spec.get("sub"):
             text(slide, MARGIN, Inches(5.7), CONTENT_W, Inches(0.5),
@@ -385,7 +385,7 @@ def l_bullets(slide, spec, th, no):
                      paragraphs(f"{i:02d}", th, size=15, bold=True, color=th["accent"],
                                 spc=1.0))
                 text(slide, MARGIN + Inches(0.75), y, Inches(10.7), Inches(1.0),
-                     paragraphs(t, th, size=fit(t, 20, 15, 40), ls=1.7))
+                     paragraphs(t, th, size=fit(t, 20, 15, 40), ls=1.45))
                 y += step
             close_line(slide, spec, th)
             return
@@ -445,11 +445,11 @@ def l_cards(slide, spec, th, no):
                                 spc=1.2))
                 cy += Inches(0.45)
             t = c.get("title", "")
-            text(slide, x, cy, w, Inches(1.2),
-                 paragraphs(t, th, size=fit(t, 22, 15, 16), bold=True, ls=1.35))
+            text(slide, x, cy, w, Inches(1.1),
+                 paragraphs(t, th, size=fit(t, 22, 15, 16), bold=True, ls=1.25))
             if c.get("body"):
-                text(slide, x, cy + Inches(1.3), w, int(top + h - cy - Inches(1.35)),
-                     paragraphs(c["body"], th, size=15 if n <= 3 else 14, ls=1.75))
+                text(slide, x, cy + Inches(1.2), w, int(top + h - cy - Inches(1.25)),
+                     paragraphs(c["body"], th, size=15 if n <= 3 else 14, ls=1.55))
                 if len(plain(c["body"])) > (90 if n <= 3 else 70):
                     warn(no, f"カード{i + 1}の本文が{len(plain(c['body']))}字。削る。")
         close_line(slide, spec, th)
@@ -746,7 +746,7 @@ def l_kpi(slide, spec, th, no):
             text(slide, ix, y + (Inches(1.85) if th.get("bold") else Inches(1.7)), iw,
                  Inches(0.5),
                  paragraphs(it["sub"], th, size=13 if (th.get("pop") or th.get("bold")) else 11,
-                            color=th["muted"], ls=1.5))
+                            color=th["muted"], ls=1.35))
     if spec.get("note"):
         text(slide, MARGIN, y + bh + Inches(0.2), CONTENT_W, Inches(0.4),
              paragraphs(spec["note"], th, size=11.5 if (th.get("pop") or th.get("bold")) else 9,
@@ -792,7 +792,7 @@ def l_table(slide, spec, th, no):
                  cws[j] - Inches(0.14) - (Inches(0.1) if me else 0), rowh,
                  paragraphs(str(row[j]) if j < len(row) else "", th,
                             size=15 if (th.get("pop") or th.get("bold")) else 13, bold=me,
-                            ls=1.45), anchor="middle")
+                            ls=1.3), anchor="middle")
         if i < len(rows) - 1:
             rect(slide, MARGIN, ry + rowh - Pt(0.4), CONTENT_W, Pt(0.75), fill=th["line"],
                  square=True)
@@ -993,10 +993,10 @@ def l_closing(slide, spec, th, no):
                  paragraphs(spec["label"], th, size=14, bold=True, spc=1.5))
         t = spec.get("text") or spec.get("headline", "")
         text(slide, MARGIN, Inches(2.0), CONTENT_W, Inches(3.0),
-             paragraphs(t, th, size=fit(t, 60, 32, 16), bold=True, ls=1.2), anchor="middle")
+             paragraphs(t, th, size=fit(t, 60, 32, 16), bold=True, ls=1.12), anchor="middle")
         if spec.get("sub"):
             text(slide, MARGIN, Inches(5.2), CONTENT_W, Inches(1.0),
-                 paragraphs(spec["sub"], th, size=18, medium=True, ls=1.6))
+                 paragraphs(spec["sub"], th, size=18, medium=True, ls=1.45))
         return
     if th.get("pop"):
         bg(slide, th["accent"])
@@ -1211,7 +1211,7 @@ def _run_html(r: dict) -> str:
 
 def _para_html(p: dict) -> str:
     al = {"l": "left", "ctr": "center", "r": "right"}[p["align"]]
-    st = (f'text-align:{al};line-height:{p["ls"] * 1.25:.2f};'
+    st = (f'text-align:{al};line-height:{p["ls"] * 1.3:.2f};'
           f'margin:0 0 {p.get("after", 0) * 96 / 72:.2f}px 0;font-size:{p["size"] * 96 / 72:.2f}px;')
     inner = "".join(_run_html(r) for r in p["runs"]) or "&nbsp;"
     return f'<p style="{st}">{inner}</p>'
