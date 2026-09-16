@@ -985,6 +985,46 @@ def l_tweets(slide, spec, th, no):
             warn(no, f"投稿{k + 2}が70字超。ツイートは一息で読める長さに。")
 
 
+def l_solo(slide, spec, th, no):
+    """1ページに1項目だけ、大きく出す。番号＋一言＋補足。
+
+    fill を渡すとページ全面が色になる（章扉として使う）。
+    番号の色は no の数字で hues を回す。
+    """
+    fill = spec.get("fill")
+    flood = {"accent": th["accent"], "marker": th["marker"],
+             "ink": th["ink"]}.get(fill) or (hue(th, int(fill)) if str(fill).isdigit() else None)
+    on_light = flood in (th["marker"], th.get("hues", [None, None])[1] if th.get("hues") else None)
+    ink = th["ink"] if (flood is None or on_light) else "FFFFFF"
+    if flood:
+        bg(slide, flood)
+    if spec.get("label"):
+        text(slide, MARGIN, LABEL_Y + Inches(0.04), CONTENT_W, Inches(0.36),
+             paragraphs(spec["label"], th, size=13, bold=True, color=ink, spc=1.5))
+
+    n = str(spec.get("no", ""))
+    title = spec.get("title", "")
+    body = spec.get("body")
+    nw = Inches(2.3) if n else 0
+    tx = MARGIN + nw
+    tw = SLIDE_W - MARGIN - tx
+    block = Inches(2.6)
+    y = int(Inches(1.5) + max(0, (Inches(5.1) - block) / 2))
+
+    if n:
+        # 白地では黄色の数字が沈むので、番号の色は黄を外して回す
+        seq = [c for c in (th.get("hues") or [th["accent"]]) if c != th["marker"]]
+        nc = ink if flood else seq[((int(n) - 1) if n.isdigit() else 0) % len(seq)]
+        text(slide, MARGIN, y, int(nw), int(block),
+             paragraphs(n, th, size=132, bold=True, color=nc, ls=1.0), anchor="middle")
+    text(slide, int(tx), y, int(tw), int(block * 0.62),
+         paragraphs(title, th, size=fit(title, 80, 40, 8), bold=True, color=ink, ls=1.15),
+         anchor="bottom")
+    if body:
+        text(slide, int(tx), int(y + block * 0.68), int(tw), int(block * 0.34),
+             paragraphs(body, th, size=fit(body, 18, 14, 46), color=ink, ls=1.55))
+
+
 def l_closing(slide, spec, th, no):
     if th.get("bold"):
         bg(slide, th["hues"][1])
@@ -1029,7 +1069,8 @@ LAYOUTS = {
     "bullets": l_bullets, "cards": l_cards, "brief": l_brief, "orient": l_orient,
     "journey": l_journey, "cols": l_cols, "keymessage": l_keymessage, "idea": l_idea,
     "plan": l_plan, "kpi": l_kpi, "table": l_table, "timeline": l_timeline,
-    "quote": l_quote, "orgchart": l_orgchart, "tweets": l_tweets, "closing": l_closing,
+    "quote": l_quote, "orgchart": l_orgchart, "tweets": l_tweets, "solo": l_solo,
+    "closing": l_closing,
 }
 NO_CHROME = {"cover", "closing", "idea", "keymessage"}
 
