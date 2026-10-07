@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Road to 800 | English Study</title>
+<meta name="description" content="TOEIC 800点を目指す、リーディングとシャドーイングの学習アプリ。">
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="app-header">
+  <button class="logo" type="button" data-go="home">Road to 800<span class="dot">.</span></button>
+  <div class="header-stats">
+    <span class="chip" title="連続学習日数">🔥 <b id="streak">0</b>日</span>
+    <span class="chip" title="レベル">Lv.<b id="level">1</b></span>
+  </div>
+</header>
+
+<main>
+  <!-- ============ HOME ============ -->
+  <section class="view active" id="view-home">
+    <div class="hero-card">
+      <p class="eyebrow">TODAY</p>
+      <h1 id="rankTitle">Starter</h1>
+      <div class="xp-bar"><span id="xpFill"></span></div>
+      <p class="xp-text"><b id="xpNow">0</b> / <span id="xpNext">100</span> XP — 次のレベルまで</p>
+
+      <div class="goal">
+        <p>今日のゴール: <b id="goalCount">0</b> / 5 セット</p>
+        <div class="goal-dots" id="goalDots"></div>
+      </div>
+    </div>
+
+    <div class="mode-grid">
+      <button class="mode-card reading" type="button" data-go="reading-list">
+        <span class="mode-icon">📖</span>
+        <h2>Reading</h2>
+        <p>Part 7形式の長文を時間内に解く。<br>単語をタップで意味チェック。</p>
+        <span class="mode-meta" id="readingMeta"></span>
+      </button>
+      <button class="mode-card shadow" type="button" data-go="shadow-list">
+        <span class="mode-icon">🎙</span>
+        <h2>Shadowing</h2>
+        <p>音声をまねして話すと<br>発音の一致率をスコア化。</p>
+        <span class="mode-meta" id="shadowMeta"></span>
+      </button>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <h3>マイ単語帳</h3>
+        <span class="muted" id="wordCount">0語</span>
+      </div>
+      <p class="muted small" id="wordEmpty">リーディング中に単語をタップして「＋単語帳」で追加できます。</p>
+      <ul class="word-list" id="wordList"></ul>
+    </div>
+
+    <p class="footnote">XPとレベルは学習量の目安です（TOEICの予想スコアではありません）。</p>
+  </section>
+
+  <!-- ============ READING LIST ============ -->
+  <section class="view" id="view-reading-list">
+    <button class="back" type="button" data-go="home">← ホーム</button>
+    <h2 class="view-title">Reading <span class="muted">/ Part 7</span></h2>
+    <p class="lead">目標タイム内に全問正解でボーナスXP。わからない単語はタップ！</p>
+    <div class="list" id="passageList"></div>
+  </section>
+
+  <!-- ============ READING PLAY ============ -->
+  <section class="view" id="view-reading">
+    <div class="play-bar">
+      <button class="back" type="button" data-go="reading-list">← 一覧</button>
+      <div class="timer" id="timer"><span id="timerText">0:00</span> / <span id="timerTarget">2:00</span></div>
+    </div>
+    <div class="reading-layout">
+      <article class="passage">
+        <p class="passage-type" id="passageType"></p>
+        <div class="passage-text" id="passageText"></div>
+      </article>
+      <div class="questions">
+        <div id="questionList"></div>
+        <button class="btn primary wide" type="button" id="submitReading">答え合わせ</button>
+        <div class="result-box" id="readingResult" hidden></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ SHADOW LIST ============ -->
+  <section class="view" id="view-shadow-list">
+    <button class="back" type="button" data-go="home">← ホーム</button>
+    <h2 class="view-title">Shadowing</h2>
+    <p class="lead">🔊で聞く → 🎙で話す。英文を隠して話すと<b>XP 1.5倍</b>のチャレンジモード！</p>
+    <div class="list" id="setList"></div>
+    <p class="footnote" id="micNote" hidden>
+      ※ このブラウザは音声認識に対応していません。話したあとに自己採点するモードで動きます（ChromeやSafariでは自動採点できます）。
+    </p>
+  </section>
+
+  <!-- ============ SHADOW PLAY ============ -->
+  <section class="view" id="view-shadow">
+    <div class="play-bar">
+      <button class="back" type="button" data-go="shadow-list">← 一覧</button>
+      <span class="progress-label" id="shadowProgress">1 / 8</span>
+    </div>
+    <div class="steps" id="shadowSteps"></div>
+
+    <div class="shadow-card">
+      <div class="sentence" id="sentence"></div>
+      <p class="translation" id="translation"></p>
+
+      <div class="controls">
+        <button class="btn round" type="button" id="playBtn" aria-label="音声を再生">🔊</button>
+        <div class="speed" role="group" aria-label="再生速度">
+          <button type="button" data-rate="0.75">0.75x</button>
+          <button type="button" data-rate="0.9" class="on">0.9x</button>
+          <button type="button" data-rate="1.1">1.1x</button>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" id="blindToggle">
+          <span>英文を隠す（XP×1.5）</span>
+        </label>
+      </div>
+
+      <button class="btn mic" type="button" id="micBtn">🎙 話してみる</button>
+      <p class="live" id="liveText"></p>
+
+      <div class="self-rate" id="selfRate" hidden>
+        <p>うまく言えた？</p>
+        <div>
+          <button class="btn" type="button" data-self="40">😵 まだまだ</button>
+          <button class="btn" type="button" data-self="70">🙂 だいたい</button>
+          <button class="btn" type="button" data-self="95">😎 完璧！</button>
+        </div>
+      </div>
+
+      <div class="score-box" id="scoreBox" hidden>
+        <div class="score-num"><span id="scoreNum">0</span>%</div>
+        <div class="stars" id="stars"></div>
+        <p class="diff" id="diff"></p>
+        <div class="score-actions">
+          <button class="btn" type="button" id="retryBtn">もう一回</button>
+          <button class="btn primary" type="button" id="nextBtn">次へ →</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ SUMMARY ============ -->
+  <section class="view" id="view-summary">
+    <div class="summary-card">
+      <p class="eyebrow">NICE WORK</p>
+      <h2 id="summaryTitle">セット完了！</h2>
+      <p class="summary-xp">+<span id="summaryXp">0</span> XP</p>
+      <p id="summaryText"></p>
+      <div class="score-actions">
+        <button class="btn" type="button" id="summaryAgain">もう一度</button>
+        <button class="btn primary" type="button" data-go="home">ホームへ</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- word popover -->
+<div class="popover" id="popover" hidden>
+  <p class="pop-word" id="popWord"></p>
+  <p class="pop-ja" id="popJa"></p>
+  <div class="pop-actions">
+    <button type="button" id="popSpeak">🔊</button>
+    <button type="button" id="popSave">＋単語帳</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
