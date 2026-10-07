@@ -1,12 +1,12 @@
 // ============ storage ============
-const STORE_KEY = "road745";
+const STORE_KEY = "english-study";
 const DAILY_GOAL = 5;
-const RANKS = ["Starter", "Beginner", "Explorer", "Challenger", "Runner", "Climber", "Achiever", "Advanced", "Expert", "745 Master"];
+const RANKS = ["Starter", "Beginner", "Explorer", "Challenger", "Runner", "Climber", "Achiever", "Advanced", "Expert", "800 Master"];
 
 function loadState() {
   const base = { xp: 0, streak: 0, lastDay: "", today: { date: "", count: 0 }, reading: {}, shadow: {}, words: [] };
   try {
-    return Object.assign(base, JSON.parse(localStorage.getItem(STORE_KEY)) || {});
+    return Object.assign(base, JSON.parse(localStorage.getItem(STORE_KEY) || localStorage.getItem("road745")) || {});
   } catch (e) {
     return base;
   }
