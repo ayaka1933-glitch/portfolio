@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Talk Lab | English Speaking</title>
+<meta name="description" content="プレゼンの質疑応答や英語の雑談を、声に出して練習するスピーキングアプリ。">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#14b4d4">
+<link rel="icon" href="../study/icons/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../study/icons/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="../study/icons/icon-180.png">
+<meta name="apple-mobile-web-app-title" content="Talk Lab">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="app-header">
+  <button class="logo" type="button" data-go="home"><img src="../study/icons/mascot.svg" alt="" class="logo-bird"><span>Talk Lab<span class="dot">.</span></span></button>
+  <div class="header-stats">
+    <span class="chip" title="連続日数">🔥 <b id="streak">0</b>日</span>
+    <span class="chip" title="レベル">Lv.<b id="level">1</b></span>
+  </div>
+</header>
+
+<main>
+  <!-- ============ HOME ============ -->
+  <section class="view active" id="view-home">
+    <div class="hero-card">
+      <div class="hero-top">
+        <div>
+          <p class="eyebrow">SPEAK UP TODAY</p>
+          <h1 id="rankTitle">Lv.1 Quiet Bird</h1>
+        </div>
+        <img src="../study/icons/mascot.svg" alt="" class="hero-bird" id="heroBird">
+      </div>
+      <div class="xp-bar"><span id="xpFill"></span></div>
+      <p class="xp-text"><b id="xpNow">0</b> / <span id="xpNext">100</span> XP</p>
+
+      <div class="word-meter">
+        <div>
+          <p class="wm-label">今日しゃべった英単語</p>
+          <p class="wm-num"><b id="todayWords">0</b><small> / <span id="wordGoal">150</span> words</small></p>
+        </div>
+        <div class="wm-ring" id="wmRing"><span id="wmPct">0%</span></div>
+      </div>
+      <p class="cheer" id="cheer"></p>
+    </div>
+
+    <div class="mode-grid">
+      <button class="mode-card big" type="button" data-go="qa-list">
+        <span class="mode-icon">🎤</span>
+        <h2>Q&amp;A Dojo</h2>
+        <p>プレゼン後の質問に声で答える。<br>お手本と「答えの型」つき。</p>
+        <span class="mode-meta" id="qaMeta"></span>
+      </button>
+      <button class="mode-card" type="button" data-go="rp-list">
+        <span class="mode-icon">💬</span>
+        <h2>Role Play</h2>
+        <p>話した内容で会話が分岐。<br>雑談・会議・会食。</p>
+        <span class="mode-meta" id="rpMeta"></span>
+      </button>
+      <button class="mode-card" type="button" data-go="quick-list">
+        <span class="mode-icon">⚡</span>
+        <h2>Quick Fire</h2>
+        <p>日本語を見て5秒で英語に。<br>コンボを狙え！</p>
+        <span class="mode-meta" id="quickMeta"></span>
+      </button>
+      <button class="mode-card" type="button" data-go="story-list">
+        <span class="mode-icon">📚</span>
+        <h2>Stories</h2>
+        <p>短くて面白い英文を読んで、<br>自分の話で答える。</p>
+        <span class="mode-meta" id="storyMeta"></span>
+      </button>
+      <button class="mode-card ai" type="button" data-go="ai-setup">
+        <span class="mode-icon">🤖</span>
+        <h2>AI Talk</h2>
+        <p>AI相手に自由に会話。<br>自分のプレゼンで質疑リハーサルも。</p>
+        <span class="mode-meta" id="aiMeta">APIキーが必要</span>
+      </button>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <h3>⭐ マイフレーズ帳</h3>
+        <span class="muted small" id="phraseCount">0</span>
+      </div>
+      <p class="muted small" id="phraseEmpty">お手本や単語の「☆保存」で、使いたいフレーズをためていけます。</p>
+      <ul class="phrase-list" id="phraseList"></ul>
+    </div>
+
+    <div class="panel week">
+      <div class="panel-head"><h3>直近7日</h3><span class="muted small">しゃべった単語数</span></div>
+      <div class="week-bars" id="weekBars"></div>
+    </div>
+
+    <a class="cross-link" href="../study/">📖 TOEIC対策は <b>Road to 800</b> へ →</a>
+    <p class="footnote">記録はこのブラウザにだけ保存されます。音声認識はChrome / Safari推奨。</p>
+  </section>
+
+  <!-- ============ Q&A LIST ============ -->
+  <section class="view" id="view-qa-list">
+    <button class="back" type="button" data-go="home">← ホーム</button>
+    <h2 class="view-title">Q&amp;A Dojo</h2>
+    <p class="lead">設定：あなたはクライアントに<b>新商品のSNSキャンペーン企画</b>をプレゼンし終えたところ。質問が飛んできます。</p>
+    <div class="list" id="qaList"></div>
+    <div class="panel tips">
+      <h3>答えの型（迷ったらこれ）</h3>
+      <ol>
+        <li><b>受け止める</b> — That's a good question. / I see what you mean.</li>
+        <li><b>結論</b> — Our main goal is … / There are two reasons.</li>
+        <li><b>理由・例</b> — because … / For example, …</li>
+        <li><b>締める</b> — That's why … / Does that answer your question?</li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ============ Q&A PLAY ============ -->
+  <section class="view" id="view-qa">
+    <div class="play-bar">
+      <button class="back" type="button" data-go="qa-list">← 一覧</button>
+      <span class="progress-label" id="qaProgress"></span>
+    </div>
+    <div class="steps" id="qaSteps"></div>
+
+    <div class="q-card">
+      <div class="asker">
+        <span class="avatar">🧑‍💼</span>
+        <div class="bubble them" id="qaBubble">
+          <p class="q-text" id="qaText"></p>
+          <p class="q-hidden" id="qaHiddenNote">🎧 まずは耳だけで聞き取ってみよう</p>
+        </div>
+      </div>
+      <div class="row-actions">
+        <button class="btn" type="button" id="qaPlay">🔊 もう一度</button>
+        <button class="btn" type="button" id="qaReveal">👀 質問文を見る</button>
+        <label class="toggle"><input type="checkbox" id="qaSlow"><span>ゆっくり</span></label>
+      </div>
+      <p class="q-ja" id="qaJa" hidden></p>
+      <p class="q-tip" id="qaTip"></p>
+    </div>
+
+    <div class="answer-card" id="qaAnswerCard">
+      <div class="rec" id="qaRec"></div>
+    </div>
+
+    <div class="result-card" id="qaResult" hidden>
+      <div class="stat-row" id="qaStats"></div>
+      <div class="phrase-check" id="qaPhrases"></div>
+      <div class="ai-feedback" id="qaAiBox" hidden></div>
+      <div class="model">
+        <div class="model-head">
+          <h4>お手本の答え</h4>
+          <div>
+            <button class="mini" type="button" id="qaModelPlay">🔊</button>
+            <button class="mini" type="button" id="qaModelSave">☆保存</button>
+          </div>
+        </div>
+        <p class="model-en" id="qaModelEn"></p>
+        <p class="model-ja" id="qaModelJa"></p>
+      </div>
+      <div class="self-rate">
+        <p>自分の答え、どうだった？</p>
+        <div>
+          <button class="btn" type="button" data-qa-rate="1">😵 言えなかった</button>
+          <button class="btn" type="button" data-qa-rate="2">🙂 なんとか</button>
+          <button class="btn" type="button" data-qa-rate="3">😎 いい感じ</button>
+        </div>
+      </div>
+      <div class="score-actions">
+        <button class="btn" type="button" id="qaRetry">もう一回答える</button>
+        <button class="btn ai-btn" type="button" id="qaAskAi" hidden>🤖 AIに添削してもらう</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ ROLE PLAY LIST ============ -->
+  <section class="view" id="view-rp-list">
+    <button class="back" type="button" data-go="home">← ホーム</button>
+    <h2 class="view-title">Role Play</h2>
+    <p class="lead">相手のセリフに、候補の中から<b>自分の声で</b>返事しよう。言った内容で会話が分岐します。慣れたら候補を隠してチャレンジ！</p>
+    <div class="list" id="rpList"></div>
+  </section>
+
+  <!-- ============ ROLE PLAY CHAT ============ -->
+  <section class="view" id="view-rp">
+    <div class="play-bar">
+      <button class="back" type="button" data-go="rp-list">← 一覧</button>
+      <label class="toggle"><input type="checkbox" id="rpHide"><span>候補を日本語だけにする（XP×2）</span></label>
+    </div>
+    <div class="chat" id="rpChat"></div>
+    <div class="reply-box" id="rpReplyBox">
+      <p class="small muted" id="rpHint">どれかを声に出して言ってみよう（タップでも選べます）</p>
+      <div class="replies" id="rpReplies"></div>
+      <div class="rec" id="rpRec"></div>
+    </div>
+  </section>
+
+  <!-- ============ QUICK LIST ============ -->
+  <section class="view" id="view-quick-list">
+    <button class="back" type="button" data-go="home">← ホーム</button>
+    <h2 class="view-title">Quick Fire</h2>
+    <p class="lead">日本語を見て、すぐ英語で言う「瞬間英作文」。考えすぎず、口から出す練習です。</p>
+    <div class="list" id="quickList"></div>
+  </section>
+
+  <!-- ============ QUICK PLAY ============ -->
+  <section class="view" id="view-quick">
+    <div class="play-bar">
+      <button class="back" type="button" data-go="quick-list">← 一覧</button>
+      <span class="combo" id="combo"></span>
+    </div>
+    <div class="steps" id="quickSteps"></div>
+    <div class="quick-card">
+      <div class="countdown" id="qCount"><svg viewBox="0 0 44 44"><circle cx="22" cy="22" r="20"></circle><circle class="cd-fg" id="qCountFg" cx="22" cy="22" r="20"></circle></svg><span id="qCountNum">5</span></div>
+      <p class="quick-ja" id="quickJa"></p>
+      <p class="quick-en" id="quickEn" hidden></p>
+      <p class="live" id="quickLive"></p>
+      <div class="quick-actions" id="quickActions"></div>
+    </div>
+  </section>
+
+  <!-- ============ STORY LIST ============ -->
+  <section class="view" id="view-story-list">
+    <button class="back" type="button" data-go="home">← ホーム</button>
+    <h2 class="view-title">Stories</h2>
+    <p class="lead">2分で読める面白い英文。わからない単語はタップ。読んだら「自分の話」で答えてみよう。</p>
+    <div class="list story-grid" id="storyList"></div>
+  </section>
+
+  <!-- ============ STORY READ ============ -->
+  <section class="view" id="view-story">
+    <div class="play-bar">
+      <button class="back" type="button" data-go="story-list">← 一覧</button>
+      <button class="btn small-btn" type="button" id="storyListen">🔊 読み上げ</button>
+    </div>
+    <article class="story">
+      <p class="story-meta" id="storyMeta2"></p>
+      <h2 id="storyTitle"></h2>
+      <div class="story-text" id="storyText"></div>
+    </article>
+    <div class="panel story-qs">
+      <h3>Check ✔</h3>
+      <div id="storyQs"></div>
+    </div>
+    <div class="panel story-talk" id="storyTalk" hidden>
+      <h3>🗣 Talk about it</h3>
+      <p class="talk-q" id="talkQ"></p>
+      <p class="muted small" id="talkJa"></p>
+      <div class="rec" id="storyRec"></div>
+      <div id="storyTalkResult" hidden>
+        <div class="stat-row" id="storyStats"></div>
+        <div class="ai-feedback" id="storyAiBox" hidden></div>
+        <div class="model">
+          <div class="model-head">
+            <h4>回答例</h4>
+            <div>
+              <button class="mini" type="button" id="storySamplePlay">🔊</button>
+              <button class="mini" type="button" id="storySampleSave">☆保存</button>
+            </div>
+          </div>
+          <p class="model-en" id="storySample"></p>
+        </div>
+        <div class="score-actions">
+          <button class="btn ai-btn" type="button" id="storyAskAi" hidden>🤖 AIに添削してもらう</button>
+          <button class="btn primary" type="button" id="storyDone">完了 →</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ AI SETUP ============ -->
+  <section class="view" id="view-ai-setup">
+    <button class="back" type="button" data-go="home">← ホーム</button>
+    <h2 class="view-title">AI Talk</h2>
+    <p class="lead">AIが相手役になって、あなたの答えに合わせて会話を続けます。ひとこと添削つき。</p>
+
+    <div class="panel key-panel" id="keyPanel">
+      <h3>🔑 Claude APIキー</h3>
+      <p class="small">AI Talkと「AIに添削」は、あなた自身のAnthropic APIキーで動きます（利用料はキーの持ち主に発生します）。キーは<b>このブラウザの中だけ</b>に保存され、Anthropic以外には送られません。共用のPCでは使わないでください。</p>
+      <div class="key-row">
+        <input type="password" id="apiKey" placeholder="sk-ant-..." autocomplete="off">
+        <button class="btn primary" type="button" id="keySave">保存</button>
+      </div>
+      <p class="small muted" id="keyStatus"></p>
+      <button class="link-btn" type="button" id="keyDelete" hidden>キーを削除する</button>
+    </div>
+
+    <div class="ai-modes" id="aiModes">
+      <div class="panel ai-mode">
+        <h3>🎤 プレゼン質疑リハーサル</h3>
+        <p class="small">本番のプレゼン内容を貼ると、AIが聴衆役になって質問してきます。日本語のメモでもOK。</p>
+        <textarea id="aiPres" rows="5" maxlength="4000" placeholder="例：来期のSNS施策の提案。ターゲットは20代女性、Instagramのリール中心、予算は300万円、KPIは保存数…"></textarea>
+        <label class="toggle"><input type="checkbox" id="aiTough"><span>手強い質問多め</span></label>
+        <button class="btn primary wide" type="button" id="aiStartPres">質疑を始める</button>
+      </div>
+      <div class="panel ai-mode">
+        <h3>☕ フリートーク</h3>
+        <p class="small">話題を選ぶと、AIが話しかけてきます。</p>
+        <div class="topic-chips" id="aiTopics"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ AI CHAT ============ -->
+  <section class="view" id="view-ai">
+    <div class="play-bar">
+      <button class="back" type="button" data-go="ai-setup">← 終了</button>
+      <span class="progress-label" id="aiLabel"></span>
+    </div>
+    <div class="chat" id="aiChat"></div>
+    <div class="reply-box">
+      <div class="rec" id="aiRec"></div>
+      <form class="type-row" id="aiTypeForm">
+        <input type="text" id="aiTyped" placeholder="キーボードで入力もできます" autocomplete="off">
+        <button class="btn" type="submit">送信</button>
+      </form>
+      <button class="link-btn" type="button" id="aiFinish">会話を終えてふりかえる</button>
+    </div>
+  </section>
+
+  <!-- ============ SUMMARY ============ -->
+  <section class="view" id="view-summary">
+    <div class="summary-card">
+      <img src="../study/icons/mascot.svg" alt="" class="summary-bird">
+      <p class="eyebrow">NICE TALK</p>
+      <h2 id="summaryTitle">おつかれさま！</h2>
+      <p class="summary-xp">+<span id="summaryXp">0</span> XP</p>
+      <p id="summaryText"></p>
+      <div class="summary-extra" id="summaryExtra"></div>
+      <div class="score-actions">
+        <button class="btn" type="button" id="summaryAgain">もう一度</button>
+        <button class="btn primary" type="button" data-go="home">ホームへ</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div class="popover" id="popover" hidden>
+  <p class="pop-word" id="popWord"></p>
+  <p class="pop-ja" id="popJa"></p>
+  <div class="pop-actions">
+    <button type="button" id="popSpeak">🔊</button>
+    <button type="button" id="popSave">☆保存</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
