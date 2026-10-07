@@ -295,7 +295,24 @@
     </div>
     </div>
 
-    <p class="footnote">学習時間は、リーディング・シャドーイング画面で操作している間だけ数えています（90秒操作がないと止まります）。</p>
+    <div class="panel backup" id="backup">
+      <div class="panel-head"><h3>💾 データのバックアップ・引っ越し</h3></div>
+      <p class="small">記録はこのブラウザの中だけに保存されます。iPhoneでは<b>Safariとホーム画面のアプリで保存場所が別</b>なので、移したいときはここを使ってください。</p>
+      <ol class="backup-steps small">
+        <li>記録がある方（例：Safari）で「バックアップをコピー」を押す</li>
+        <li>移したい方（例：ホーム画面のアプリ）を開き、下の欄に貼り付けて「読み込む」を押す</li>
+      </ol>
+      <div class="backup-actions">
+        <button type="button" class="btn primary" id="backupCopy">📋 バックアップをコピー</button>
+      </div>
+      <textarea id="backupText" rows="3" placeholder="ここにバックアップのコードを貼り付け"></textarea>
+      <div class="backup-actions">
+        <span class="muted small">今ある記録は消えずに、両方の記録が合わさります。</span>
+        <button type="button" class="btn" id="backupLoad">読み込む</button>
+      </div>
+    </div>
+
+    <p class="footnote">学習時間は、リーディング・リスニング・シャドーイングの画面で操作している間だけ数えています（90秒操作がないと止まります）。</p>
   </section>
 
   <!-- ============ SUMMARY ============ -->

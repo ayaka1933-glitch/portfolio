@@ -1194,5 +1194,87 @@ $("missedList").addEventListener("click", e => {
   if (b) speak(b.dataset.speak, 0.75);
 });
 
+// ============ backup / merge ============
+// Safari とホーム画面のアプリなど、保存場所が別の環境の間で記録を移す
+const BACKUP_PREFIX = "R800:";
+function exportCode() {
+  return BACKUP_PREFIX + btoa(unescape(encodeURIComponent(JSON.stringify(state))));
+}
+function parseCode(code) {
+  const body = code.trim().replace(/\s+/g, "");
+  if (!body.startsWith(BACKUP_PREFIX)) throw new Error("prefix");
+  const data = JSON.parse(decodeURIComponent(escape(atob(body.slice(BACKUP_PREFIX.length)))));
+  if (typeof data !== "object" || data === null || typeof data.xp !== "number") throw new Error("shape");
+  return data;
+}
+
+const maxMap = (a = {}, b = {}) => {
+  const out = { ...a };
+  for (const k in b) out[k] = Math.max(out[k] ?? -Infinity, b[k]);
+  return out;
+};
+// { key: {field: number} } を項目ごとに大きい方で合わせる
+const maxNested = (a = {}, b = {}) => {
+  const out = { ...a };
+  for (const k in b) out[k] = maxMap(out[k], b[k]);
+  return out;
+};
+
+// 同じバックアップを2回読み込んでも数字が増えないよう、合計ではなく大きい方を採用する
+function mergeInto(cur, inc) {
+  cur.xp = Math.max(cur.xp, inc.xp || 0);
+  if ((inc.lastDay || "") > (cur.lastDay || "")) { cur.lastDay = inc.lastDay; cur.streak = inc.streak || 0; }
+  else if (inc.lastDay === cur.lastDay) cur.streak = Math.max(cur.streak, inc.streak || 0);
+  cur.bestStreak = Math.max(cur.bestStreak || 0, inc.bestStreak || 0, cur.streak);
+  if (inc.today && inc.today.date) {
+    if (inc.today.date > (cur.today.date || "")) cur.today = { ...inc.today };
+    else if (inc.today.date === cur.today.date) cur.today.count = Math.max(cur.today.count, inc.today.count);
+  }
+  cur.reading = maxMap(cur.reading, inc.reading);
+  cur.shadow = maxMap(cur.shadow, inc.shadow);
+  cur.listening = maxMap(cur.listening, inc.listening);
+  cur.log = maxNested(cur.log, inc.log);
+  const st = inc.stats || {};
+  cur.stats = {
+    rType: maxNested(cur.stats.rType, st.rType),
+    sPart: maxNested(cur.stats.sPart, st.sPart),
+    missed: maxMap(cur.stats.missed, st.missed)
+  };
+  const words = new Map(cur.words.map(w => [w.w, w]));
+  (inc.words || []).forEach(w => { if (!words.has(w.w)) words.set(w.w, w); });
+  cur.words = [...words.values()];
+  for (const [k, v] of Object.entries(inc.memo || {})) {
+    const mine = cur.memo[k];
+    cur.memo[k] = !mine || mine === v ? v : mine.includes(v) ? mine : `${mine} / ${v}`;
+  }
+  if (!cur.goal.text && inc.goal && inc.goal.text) cur.goal = { ...inc.goal };
+  return cur;
+}
+
+$("backupCopy").addEventListener("click", async () => {
+  const code = exportCode();
+  $("backupText").value = code;
+  try {
+    await navigator.clipboard.writeText(code);
+    toast("コピーしました！移したい方で貼り付けてね");
+  } catch (e) {
+    $("backupText").select();
+    toast("下の欄のコードを長押しでコピーしてね");
+  }
+});
+$("backupLoad").addEventListener("click", () => {
+  let data;
+  try { data = parseCode($("backupText").value); }
+  catch (e) { toast("コードが正しくないみたい。全部コピーできているか確認してね"); return; }
+  const days = Object.keys(data.log || {}).length;
+  if (!confirm(`バックアップを読み込みます（学習記録 ${days}日分）。今ある記録と合わせます。よろしいですか？`)) return;
+  mergeInto(state, data);
+  saveState();
+  $("backupText").value = "";
+  toast("読み込みました！");
+  renderDashboard();
+  renderHeader();
+});
+
 // ============ init ============
 renderHome();

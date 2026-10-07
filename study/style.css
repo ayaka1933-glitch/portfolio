@@ -671,3 +671,20 @@ main { max-width: 980px; margin: 0 auto; padding: 24px 16px 64px; }
 @media (max-width: 860px) {
   .mode-grid { grid-template-columns: 1fr; }
 }
+
+/* ============ backup ============ */
+.panel.backup { margin-top: 20px; }
+.backup-steps { margin: 8px 0 12px 1.4em; line-height: 1.8; }
+.backup-actions { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin: 8px 0; }
+.backup-actions:first-of-type { justify-content: flex-start; }
+#backupText {
+  width: 100%;
+  font: 12px/1.5 ui-monospace, Menlo, monospace;
+  padding: 8px 10px;
+  border: 2px solid var(--line);
+  border-radius: 10px;
+  color: var(--teal-dark);
+  resize: vertical;
+  word-break: break-all;
+}
+#backupText:focus { outline: none; border-color: var(--cyan); }
