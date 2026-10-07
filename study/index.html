@@ -16,6 +16,7 @@
 <header class="app-header">
   <button class="logo" type="button" data-go="home">Road to 800<span class="dot">.</span></button>
   <div class="header-stats">
+    <button class="chip" type="button" data-go="dashboard" title="ダッシュボード">📊</button>
     <span class="chip" title="連続学習日数">🔥 <b id="streak">0</b>日</span>
     <span class="chip" title="レベル">Lv.<b id="level">1</b></span>
   </div>
@@ -50,6 +51,15 @@
         <span class="mode-meta" id="shadowMeta"></span>
       </button>
     </div>
+
+    <button class="dash-link" type="button" data-go="dashboard">
+      <span class="mode-icon">📊</span>
+      <span class="dash-link-body">
+        <b>ダッシュボード</b>
+        <span class="muted small">直近7日: <span id="weekMini"></span></span>
+      </span>
+      <span class="dash-arrow">→</span>
+    </button>
 
     <div class="panel">
       <div class="panel-head">
@@ -148,6 +158,54 @@
         </div>
       </div>
     </div>
+  </section>
+
+  <!-- ============ DASHBOARD ============ -->
+  <section class="view" id="view-dashboard">
+    <button class="back" type="button" data-go="home">← ホーム</button>
+    <h2 class="view-title">Dashboard</h2>
+    <p class="lead" id="weekLine"></p>
+
+    <div class="stat-grid">
+      <div class="stat"><span>今の連続日数</span><b><span id="statStreak">0</span><small>日</small></b><em>最長 <span id="statBest">0</span>日</em></div>
+      <div class="stat"><span>学習した日</span><b><span id="statDays">0</span><small>日</small></b></div>
+      <div class="stat"><span>合計学習時間</span><b id="statTime">0分</b></div>
+      <div class="stat"><span>解いた問題</span><b><span id="statQ">0</span><small>問</small></b><em id="statQSub"></em></div>
+      <div class="stat"><span>シャドーイング</span><b><span id="statSS">0</span><small>回</small></b></div>
+    </div>
+
+    <div class="dash-grid">
+    <div class="panel">
+      <div class="panel-head cal-head">
+        <div class="cal-nav">
+          <button type="button" id="calPrev" aria-label="前の月">‹</button>
+          <h3 id="calTitle"></h3>
+          <button type="button" id="calNext" aria-label="次の月">›</button>
+        </div>
+        <div class="metric" role="group" aria-label="カレンダーの表示">
+          <button type="button" data-metric="time" class="on">時間</button>
+          <button type="button" data-metric="count">問題数</button>
+        </div>
+      </div>
+      <div class="cal-week"><span>日</span><span>月</span><span>火</span><span>水</span><span>木</span><span>金</span><span>土</span></div>
+      <div class="cal-grid" id="calGrid"></div>
+      <div class="cal-foot">
+        <span class="muted small" id="calCount"></span>
+        <span class="legend">少<i class="lv0"></i><i class="lv1"></i><i class="lv2"></i><i class="lv3"></i><i class="lv4"></i>多</span>
+      </div>
+      <div class="day-detail" id="dayDetail"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <h3>直近14日の学習時間</h3>
+        <span class="muted small">分</span>
+      </div>
+      <div class="bar-chart" id="barChart"></div>
+    </div>
+    </div>
+
+    <p class="footnote">学習時間は、リーディング・シャドーイング画面で操作している間だけ数えています（90秒操作がないと止まります）。</p>
   </section>
 
   <!-- ============ SUMMARY ============ -->
