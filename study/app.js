@@ -4,7 +4,7 @@ const DAILY_GOAL = 5;
 const RANKS = ["Starter", "Beginner", "Explorer", "Challenger", "Runner", "Climber", "Achiever", "Advanced", "Expert", "800 Master"];
 
 function loadState() {
-  const base = { xp: 0, streak: 0, lastDay: "", today: { date: "", count: 0 }, reading: {}, shadow: {}, words: [], log: {}, bestStreak: 0,
+  const base = { xp: 0, streak: 0, lastDay: "", today: { date: "", count: 0 }, reading: {}, shadow: {}, listening: {}, words: [], log: {}, bestStreak: 0,
     stats: { rType: {}, sPart: {}, missed: {} }, memo: {}, goal: { text: "", exam: "" } };
   try {
     return Object.assign(base, JSON.parse(localStorage.getItem(STORE_KEY) || localStorage.getItem("road745")) || {});
@@ -23,10 +23,13 @@ function dayKey(offset = 0) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-// 日ごとの学習記録 { sec: 学習秒数, rq: 解いた問題数, rc: 正解数, ss: シャドーイング回数, xp }
+// 日ごとの学習記録 { sec: 学習秒数, rq/rc: リーディング問題数/正解数, lq/lc: リスニング問題数/正解数, ss: シャドーイング回数, xp }
 function todayLog() {
   const k = dayKey();
-  return (state.log[k] ||= { sec: 0, rq: 0, rc: 0, ss: 0, xp: 0 });
+  const l = (state.log[k] ||= { sec: 0, rq: 0, rc: 0, ss: 0, xp: 0 });
+  l.lq ??= 0;
+  l.lc ??= 0;
+  return l;
 }
 
 // 1セット終えるごとに呼ぶ: 連続日数と今日のゴールを更新
@@ -82,12 +85,14 @@ function go(name) {
   stopTimer();
   stopListening();
   if ("speechSynthesis" in window) speechSynthesis.cancel();
+  playToken++;
   hidePopover();
   document.querySelectorAll(".view").forEach(v => v.classList.toggle("active", v.id === `view-${name}`));
   window.scrollTo(0, 0);
   if (name === "home") renderHome();
   if (name === "reading-list") renderPassageList();
   if (name === "shadow-list") renderSetList();
+  if (name === "listening-list") renderListeningList();
   if (name === "dashboard") { calSelected = dayKey(); renderDashboard(); }
   currentView = name;
 }
@@ -120,6 +125,8 @@ function renderHome() {
   $("readingMeta").textContent = `${readDone} / ${PASSAGES.length} クリア`;
   const shadowDone = SHADOW_SETS.filter(s => state.shadow[s.id] !== undefined).length;
   $("shadowMeta").textContent = `${shadowDone} / ${SHADOW_SETS.length} セット挑戦済み`;
+  const listenDone = LISTENING.filter(s => state.listening[s.id] !== undefined).length;
+  $("listeningMeta").textContent = `${listenDone} / ${LISTENING.length} パート挑戦済み`;
 
   $("weekMini").textContent = weekSummary();
   renderGoal();
@@ -150,8 +157,14 @@ let elapsed = 0;
 let timerId = null;
 let submitted = false;
 
+const LEVELS = [
+  { key: "basic", name: "基本", desc: "1文書・2〜3問。言い換えに慣れる" },
+  { key: "800", name: "本番レベル（800点目標）", desc: "2文書・NOT問題・文挿入・意図問題など" }
+];
 function renderPassageList() {
-  $("passageList").innerHTML = PASSAGES.map((p, i) => {
+  $("passageList").innerHTML = LEVELS.map(lv => `
+    <h3 class="level-head"><span class="level-badge lv-${lv.key}">${esc(lv.name)}</span><span class="muted small">${esc(lv.desc)}</span></h3>` +
+  PASSAGES.map((p, i) => [p, i]).filter(([p]) => p.level === lv.key).map(([p, i]) => {
     const best = state.reading[p.id];
     return `
       <button class="list-item" type="button" data-passage="${i}">
@@ -162,7 +175,7 @@ function renderPassageList() {
         </span>
         <span class="list-best">${best === undefined ? "NEW" : starStr(best)}</span>
       </button>`;
-  }).join("");
+  }).join("")).join("");
 }
 $("passageList").addEventListener("click", e => {
   const el = e.target.closest("[data-passage]");
@@ -170,8 +183,14 @@ $("passageList").addEventListener("click", e => {
 });
 
 // 本文中の重要語を、タップで意味が出る span に置き換える
-function glossify(text, glossary) {
+// evidence: [[根拠の文, ...] (設問ごと)] 答え合わせ後に本文中でハイライトする
+function glossify(text, glossary, evidence = []) {
   let html = esc(text);
+  evidence.forEach((list, qi) => (list || []).forEach(ev => {
+    const e = esc(ev);
+    const at = html.indexOf(e);
+    if (at >= 0) html = html.slice(0, at) + `\u0002${qi}\u0003` + e + "\u0004" + html.slice(at + e.length);
+  }));
   const found = [];
   [...glossary].sort((a, b) => b.w.length - a.w.length).forEach(g => {
     const term = g.w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/ /g, "\\s+");
@@ -183,7 +202,7 @@ function glossify(text, glossary) {
   return html.replace(/\u0000(\d+)\u0000/g, (_, i) => {
     const f = found[i];
     return `<span class="gloss" data-w="${esc(f.w)}" data-ja="${esc(f.ja)}">${f.text}</span>`;
-  });
+  }).replace(/\u0002(\d+)\u0003/g, (_, qi) => `<mark class="ev"><sup>Q${+qi + 1}</sup>`).replace(/\u0004/g, "</mark>");
 }
 
 function openPassage(i) {
@@ -194,14 +213,19 @@ function openPassage(i) {
   submitted = false;
 
   $("passageType").textContent = p.type.toUpperCase();
-  $("passageText").innerHTML = glossify(p.text, p.glossary);
+  $("passageText").innerHTML = glossify(p.text, p.glossary, p.questions.map(q => q.evidence));
+  $("passageText").classList.remove("show-ev");
+  $("passageJa").textContent = p.ja || "";
+  $("passageJa").hidden = true;
+  $("jaToggle").hidden = true;
+  $("jaToggle").textContent = "全文訳を見る";
   $("timerTarget").textContent = fmtTime(p.targetSec);
   $("readingResult").hidden = true;
   $("submitReading").hidden = false;
 
   $("questionList").innerHTML = p.questions.map((q, qi) => `
     <div class="q-card" data-q="${qi}">
-      <h4>${qi + 1}. ${esc(q.q)}</h4>
+      <h4>${qi + 1}. ${esc(q.q).replace(/\n/g, "<br>")}</h4>
       ${q.choices.map((c, ci) => `
         <button class="choice" type="button" data-c="${ci}">
           <span class="mark">${"ABCD"[ci]}</span><span>${esc(c)}</span>
@@ -284,9 +308,17 @@ $("submitReading").addEventListener("click", () => {
     </div>`;
   box.hidden = false;
   $("submitReading").hidden = true;
+  $("passageText").classList.add("show-ev");
+  $("jaToggle").hidden = !p.ja;
   $("readAgain").addEventListener("click", () => openPassage(current));
   if ($("readNext")) $("readNext").addEventListener("click", () => openPassage(current + 1));
   box.scrollIntoView({ behavior: "smooth", block: "center" });
+});
+
+$("jaToggle").addEventListener("click", () => {
+  const show = $("passageJa").hidden;
+  $("passageJa").hidden = !show;
+  $("jaToggle").textContent = show ? "全文訳を閉じる" : "全文訳を見る";
 });
 
 // ============ word popover ============
@@ -597,6 +629,7 @@ $("nextBtn").addEventListener("click", () => {
 });
 
 function finishSession() {
+  summaryAgain = () => startSession(session.setIdx);
   const scores = session.best.map(b => b?.score ?? 0);
   const avg = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
   state.shadow[session.id] = Math.max(state.shadow[session.id] ?? 0, avg);
@@ -607,7 +640,220 @@ function finishSession() {
   $("summaryText").textContent = `平均一致率 ${avg}%。${avg >= 70 ? "次は英文を隠すモードや1.1xにも挑戦してみよう。" : "0.75xでゆっくりまねするところから始めよう。"}`;
   renderHeader();
 }
-$("summaryAgain").addEventListener("click", () => startSession(session.setIdx));
+let summaryAgain = () => startSession(session.setIdx);
+$("summaryAgain").addEventListener("click", () => summaryAgain());
+
+// ============ listening ============
+// 会話用に男女の声を選ぶ。同じ声しかない端末では声の高さで区別する
+const FEMALE = /Samantha|Victoria|Karen|Moira|Tessa|Allison|Ava|Susan|Zira|Jenny|Aria|Nicky|Female|Google US English$/i;
+const MALE = /Alex|Daniel|Fred|Aaron|David|Guy|Mark|Tom|Rishi|Male/i;
+function voiceFor(role) {
+  const vs = "speechSynthesis" in window ? speechSynthesis.getVoices().filter(v => /^en[-_]/i.test(v.lang)) : [];
+  const us = vs.filter(v => /^en[-_]US/i.test(v.lang));
+  const pool = us.length ? us : vs;
+  const f = pool.find(v => FEMALE.test(v.name)), m = pool.find(v => MALE.test(v.name) && !FEMALE.test(v.name));
+  const v = role === "M" ? (m || voice) : (f || voice);
+  const same = !f || !m;
+  return { voice: v, pitch: same ? (role === "M" ? 0.8 : 1.2) : 1 };
+}
+
+let lRate = 1;
+let playToken = 0;
+// 複数の文を順番に読み上げる。新しく再生するか画面を離れると前の再生は止まる
+function speakSeq(parts, onDone) {
+  if (!("speechSynthesis" in window)) { toast("このブラウザは音声再生に対応していません"); return; }
+  speechSynthesis.cancel();
+  const token = ++playToken;
+  let i = 0;
+  const next = () => {
+    if (token !== playToken) return;
+    if (i >= parts.length) { onDone && onDone(); return; }
+    const part = parts[i++];
+    const u = new SpeechSynthesisUtterance(part.t);
+    const { voice: v, pitch } = voiceFor(part.s);
+    u.lang = "en-US";
+    u.rate = lRate;
+    u.pitch = pitch;
+    if (v) u.voice = v;
+    u.onend = u.onerror = () => setTimeout(next, part.pause ?? 500);
+    speechSynthesis.speak(u);
+  };
+  next();
+}
+function stopSeq() { playToken++; if ("speechSynthesis" in window) speechSynthesis.cancel(); }
+
+let lsn = null; // { set, idx, picks, done, correct, total, xp }
+
+function renderListeningList() {
+  $("listeningList").innerHTML = LISTENING.map((set, i) => {
+    const best = state.listening[set.id];
+    const n = set.kind === "response" ? set.items.length : set.items.reduce((a, it) => a + it.questions.length, 0);
+    return `
+      <button class="list-item" type="button" data-lset="${i}">
+        <span class="list-num">${set.name.replace("Part ", "P")}</span>
+        <span class="list-body">
+          <h3>${esc(set.name)}</h3>
+          <p>${esc(set.desc)} ・ ${n}問</p>
+        </span>
+        <span class="list-best">${best === undefined ? "NEW" : `${best}%`}</span>
+      </button>`;
+  }).join("");
+}
+$("listeningList").addEventListener("click", e => {
+  const el = e.target.closest("[data-lset]");
+  if (el) startListeningSet(+el.dataset.lset);
+});
+
+function startListeningSet(setIdx) {
+  go("listening");
+  lsn = { setIdx, set: LISTENING[setIdx], idx: 0, correct: 0, total: 0, xp: 0 };
+  showListeningItem();
+}
+
+function listeningParts(item) {
+  if (lsn.set.kind === "response") {
+    const [qv, av] = item.voice;
+    return [{ s: qv, t: item.q, pause: 900 }, ...item.choices.map((c, i) => ({ s: av, t: `${"ABC"[i]}. ${c}`, pause: 700 }))];
+  }
+  return [{ s: "W", t: item.intro, pause: 900 }, ...item.lines.map(l => ({ s: l.s, t: l.t, pause: 450 }))];
+}
+
+function showListeningItem() {
+  stopSeq();
+  const { set, idx } = lsn;
+  const item = set.items[idx];
+  lsn.picks = set.kind === "response" ? [null] : item.questions.map(() => null);
+  lsn.done = false;
+  $("lProgress").textContent = `${set.name} ・ ${idx + 1} / ${set.items.length}`;
+  $("lSteps").innerHTML = set.items.map((_, i) => `<span class="${i < idx ? "done" : i === idx ? "now" : ""}"></span>`).join("");
+  $("lPlay").textContent = "▶ 音声を再生";
+  $("lPlay").disabled = false;
+  $("lTranscript").hidden = true;
+  $("lResult").hidden = true;
+  $("lSubmit").hidden = set.kind === "response";
+
+  if (set.kind === "response") {
+    $("lPrompt").innerHTML = `<p class="l-direction">Mark your answer on your answer sheet.</p><p class="muted small">質問と3つの応答が流れます。いちばん自然な応答を選んでください。</p>`;
+    $("lQuestions").innerHTML = `
+      <div class="q-card l-abc" data-q="0">
+        ${["A", "B", "C"].map((l, ci) => `<button class="choice big-choice" type="button" data-c="${ci}"><span class="mark">${l}</span></button>`).join("")}
+        <p class="explain" hidden></p>
+      </div>`;
+  } else {
+    $("lPrompt").innerHTML = `<p class="l-direction">${esc(item.intro)}</p><p class="muted small">先に設問を読んで、何を聞き取ればいいか決めてから再生しよう。</p>`;
+    $("lQuestions").innerHTML = item.questions.map((q, qi) => `
+      <div class="q-card" data-q="${qi}">
+        <h4>${qi + 1}. ${esc(q.q)}</h4>
+        ${q.choices.map((c, ci) => `
+          <button class="choice" type="button" data-c="${ci}">
+            <span class="mark">${"ABCD"[ci]}</span><span>${esc(c)}</span>
+          </button>`).join("")}
+        <p class="explain" hidden></p>
+      </div>`).join("");
+  }
+}
+
+$("lPlay").addEventListener("click", () => {
+  const item = lsn.set.items[lsn.idx];
+  $("lPlay").textContent = "🔊 再生中…";
+  $("lPlay").disabled = true;
+  speakSeq(listeningParts(item), () => {
+    $("lPlay").textContent = "↻ もう一度聞く";
+    $("lPlay").disabled = false;
+  });
+});
+$("lSlow").addEventListener("change", e => { lRate = e.target.checked ? 0.85 : 1; });
+
+$("lQuestions").addEventListener("click", e => {
+  const btn = e.target.closest(".choice");
+  if (!btn || lsn.done) return;
+  const card = btn.closest(".q-card");
+  lsn.picks[+card.dataset.q] = +btn.dataset.c;
+  card.querySelectorAll(".choice").forEach(c => c.classList.toggle("picked", c === btn));
+  if (lsn.set.kind === "response") gradeListening();
+});
+$("lSubmit").addEventListener("click", () => {
+  if (lsn.picks.includes(null)) { toast("全部の問題に答えてね"); return; }
+  gradeListening();
+});
+
+function gradeListening() {
+  lsn.done = true;
+  stopSeq();
+  $("lPlay").textContent = "↻ もう一度聞く";
+  $("lPlay").disabled = false;
+  const { set } = lsn;
+  const item = set.items[lsn.idx];
+  const qs = set.kind === "response" ? [{ answer: item.answer, explain: item.explain }] : item.questions;
+  let correct = 0;
+  document.querySelectorAll("#lQuestions .q-card").forEach((card, qi) => {
+    const q = qs[qi];
+    if (lsn.picks[qi] === q.answer) correct++;
+    card.querySelectorAll(".choice").forEach((c, ci) => {
+      c.classList.remove("picked");
+      if (ci === q.answer) c.classList.add("correct");
+      else if (ci === lsn.picks[qi]) c.classList.add("wrong");
+    });
+    const ex = card.querySelector(".explain");
+    ex.textContent = `💡 ${q.explain}`;
+    ex.hidden = false;
+  });
+
+  // スクリプトと訳
+  const rows = set.kind === "response"
+    ? [{ s: item.voice[0], t: item.q, ja: item.qja }, ...item.choices.map((c, i) => ({ s: item.voice[1], t: `(${"ABC"[i]}) ${c}`, ja: item.cja[i], ok: i === item.answer }))]
+    : item.lines;
+  $("lScript").innerHTML = rows.map(r => `
+    <div class="script-line${r.ok ? " ok" : ""}">
+      <span class="who who-${r.s}">${r.s === "M" ? "男性" : "女性"}</span>
+      <div><p class="en">${esc(r.t)}</p><p class="ja">${esc(r.ja)}</p></div>
+    </div>`).join("");
+  $("lTranscript").hidden = false;
+  $("lSubmit").hidden = true;
+
+  const total = qs.length;
+  lsn.correct += correct;
+  lsn.total += total;
+  const lg = todayLog();
+  lg.lq += total;
+  lg.lc += correct;
+  const key = `Listening ${set.name}`;
+  const rt = (state.stats.rType[key] ||= { q: 0, c: 0 });
+  rt.q += total;
+  rt.c += correct;
+  saveState();
+  const xp = correct * 10;
+  lsn.xp += xp;
+  addXp(xp);
+
+  const last = lsn.idx === set.items.length - 1;
+  $("lResult").innerHTML = `
+    <p class="big">${correct === total ? "⭕ 正解！" : total === 1 ? "❌ 不正解" : `${correct} / ${total} 問正解`}</p>
+    <div class="actions">
+      <button class="btn" type="button" id="lReplay">↻ スクリプトを見ながら聞く</button>
+      <button class="btn primary" type="button" id="lNext">${last ? "結果を見る →" : "次へ →"}</button>
+    </div>`;
+  $("lResult").hidden = false;
+  $("lReplay").addEventListener("click", () => speakSeq(listeningParts(item)));
+  $("lNext").addEventListener("click", () => {
+    if (!last) { lsn.idx++; showListeningItem(); window.scrollTo(0, 0); }
+    else finishListening();
+  });
+}
+
+function finishListening() {
+  stopSeq();
+  const pctScore = Math.round((lsn.correct / lsn.total) * 100);
+  state.listening[lsn.set.id] = Math.max(state.listening[lsn.set.id] ?? 0, pctScore);
+  recordActivity();
+  go("summary");
+  const setIdx = lsn.setIdx;
+  summaryAgain = () => startListeningSet(setIdx);
+  $("summaryTitle").textContent = pctScore >= 90 ? "耳が育ってる！🎧" : pctScore >= 70 ? "いい感じ！👏" : "おつかれさま！💪";
+  $("summaryXp").textContent = lsn.xp;
+  $("summaryText").textContent = `正答率 ${pctScore}%（${lsn.correct} / ${lsn.total}問）。${pctScore >= 70 ? "スクリプトを見ながら、聞こえなかった部分をシャドーイングすると効果的です。" : "解説で「ひっかけ」のパターンを確認して、もう一度挑戦してみよう。"}`;
+  renderHeader();
+}
 
 // ============ study time tracker ============
 // リーディング/シャドーイング画面を開いていて、90秒以内に操作がある間だけ学習時間に加算
@@ -616,7 +862,7 @@ let lastInteract = Date.now();
   window.addEventListener(ev, () => { lastInteract = Date.now(); }, { passive: true }));
 let unsavedTicks = 0;
 setInterval(() => {
-  const studying = ["reading", "shadow"].includes(currentView);
+  const studying = ["reading", "shadow", "listening"].includes(currentView);
   const active = Date.now() - lastInteract < 90000 || listening || (window.speechSynthesis && speechSynthesis.speaking);
   if (!studying || document.hidden || !active) return;
   todayLog().sec++;
@@ -632,9 +878,9 @@ const fmtMin = sec => {
   return m < 60 ? `${m}分` : `${Math.floor(m / 60)}時間${m % 60 ? `${m % 60}分` : ""}`;
 };
 const keyOf = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-const emptyLog = { sec: 0, rq: 0, rc: 0, ss: 0, xp: 0 };
-const logOf = k => state.log[k] || emptyLog;
-const isStudied = l => l.sec >= 60 || l.rq > 0 || l.ss > 0;
+const emptyLog = { sec: 0, rq: 0, rc: 0, ss: 0, xp: 0, lq: 0, lc: 0 };
+const logOf = k => ({ ...emptyLog, ...state.log[k] });
+const isStudied = l => l.sec >= 60 || l.rq > 0 || l.ss > 0 || l.lq > 0;
 
 let calMonth = (() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); })();
 let calMetric = "time";
@@ -651,12 +897,14 @@ function sumRange(fromOffset, toOffset) {
 
 function weekSummary() {
   const w = sumRange(-6, 0);
-  return `${fmtMin(w.sec)} ・ ${w.rq}問 ・ シャドーイング${w.ss}回`;
+  return `${fmtMin(w.sec)} ・ ${w.rq + w.lq}問 ・ シャドーイング${w.ss}回`;
 }
 
 function renderDashboard() {
   const all = Object.values(state.log);
   const total = all.reduce((t, l) => { for (const k in t) t[k] += l[k] || 0; return t; }, { ...emptyLog });
+  total.rq += total.lq;
+  total.rc += total.lc;
   const days = Object.values(state.log).filter(isStudied).length;
   const alive = state.lastDay === dayKey() || state.lastDay === dayKey(-1);
   const acc = total.rq ? Math.round((total.rc / total.rq) * 100) : null;
@@ -671,7 +919,7 @@ function renderDashboard() {
 
   const thisW = sumRange(-6, 0), lastW = sumRange(-13, -7);
   const diff = Math.round((thisW.sec - lastW.sec) / 60);
-  $("weekLine").innerHTML = `直近7日: <b>${fmtMin(thisW.sec)}</b>・<b>${thisW.rq}</b>問・シャドーイング<b>${thisW.ss}</b>回` +
+  $("weekLine").innerHTML = `直近7日: <b>${fmtMin(thisW.sec)}</b>・<b>${thisW.rq + thisW.lq}</b>問・シャドーイング<b>${thisW.ss}</b>回` +
     (lastW.sec || thisW.sec ? `<span class="${diff >= 0 ? "up" : "down"}">（その前の7日より${diff >= 0 ? "+" : "−"}${Math.abs(diff)}分）</span>` : "");
 
   renderAnalysis();
@@ -685,7 +933,7 @@ function heatLevel(l) {
     const m = l.sec / 60;
     return m <= 0.5 ? 0 : m < 10 ? 1 : m < 20 ? 2 : m < 40 ? 3 : 4;
   }
-  const n = l.rq + l.ss;
+  const n = l.rq + l.lq + l.ss;
   return n === 0 ? 0 : n < 5 ? 1 : n < 15 ? 2 : n < 30 ? 3 : 4;
 }
 
@@ -703,10 +951,10 @@ function renderCalendar() {
     const l = logOf(k);
     if (isStudied(l)) studied++;
     const lv = heatLevel(l);
-    const val = calMetric === "time" ? (l.sec >= 60 ? `${Math.round(l.sec / 60)}m` : "") : (l.rq + l.ss ? l.rq + l.ss : "");
+    const val = calMetric === "time" ? (l.sec >= 60 ? `${Math.round(l.sec / 60)}m` : "") : (l.rq + l.lq + l.ss || "");
     const future = k > today;
     html += `<button type="button" class="cal-day lv${lv}${state.memo[k] ? " has-memo" : ""}${k === today ? " today" : ""}${k === calSelected ? " sel" : ""}"
-      data-day="${k}" ${future ? "disabled" : ""} aria-label="${mo + 1}月${d}日 ${fmtMin(l.sec)} ${l.rq}問 シャドーイング${l.ss}回">
+      data-day="${k}" ${future ? "disabled" : ""} aria-label="${mo + 1}月${d}日 ${fmtMin(l.sec)} ${l.rq + l.lq}問 シャドーイング${l.ss}回">
       <span class="cal-n">${d}</span><span class="cal-v">${val}</span></button>`;
   }
   $("calGrid").innerHTML = html;
@@ -727,6 +975,7 @@ function renderDayDetail() {
     <div class="dd-grid">
       <div><span>学習時間</span><b>${fmtMin(l.sec)}</b></div>
       <div><span>リーディング</span><b>${l.rq}問</b>${l.rq ? `<small>${l.rc}問正解</small>` : ""}</div>
+      <div><span>リスニング</span><b>${l.lq}問</b>${l.lq ? `<small>${l.lc}問正解</small>` : ""}</div>
       <div><span>シャドーイング</span><b>${l.ss}回</b></div>
       <div><span>獲得XP</span><b>${l.xp}</b></div>
     </div>` : `<p class="dd-date">${m}月${d}日</p><p class="muted small">この日の学習記録はありません。</p>`) + `
@@ -797,7 +1046,7 @@ function renderBars() {
     const r = e.target.closest(".hit");
     if (!r) { tip.hidden = true; return; }
     const x = days[+r.dataset.i];
-    tip.innerHTML = `<b>${x.d.getMonth() + 1}/${x.d.getDate()}</b> ${fmtMin(x.l.sec)}<br>${x.l.rq}問・シャドーイング${x.l.ss}回`;
+    tip.innerHTML = `<b>${x.d.getMonth() + 1}/${x.d.getDate()}</b> ${fmtMin(x.l.sec)}<br>${x.l.rq + x.l.lq}問・シャドーイング${x.l.ss}回`;
     tip.hidden = false;
     const cx = +r.getAttribute("x") + slot / 2;
     tip.style.left = `${Math.min(Math.max(cx - tip.offsetWidth / 2, 0), W - tip.offsetWidth)}px`;
@@ -888,7 +1137,7 @@ function insights() {
     types.sort((a, b) => a[1].c / a[1].q - b[1].c / b[1].q);
     const [wt, wv] = types[0];
     const [bt, bv] = types[types.length - 1];
-    if (pct(wv.c, wv.q) < 80) out.push({ icon: "🎯", text: `リーディングは「${wt}」の正答率が${pct(wv.c, wv.q)}%で一番低めです。解説で、本文のどこが言い換えられているかを確認しよう。` });
+    if (pct(wv.c, wv.q) < 80) out.push({ icon: "🎯", text: `「${wt}」の正答率が${pct(wv.c, wv.q)}%で一番低めです。解説で、本文のどこが言い換えられているかを確認しよう。` });
     if (types.length > 1 && pct(bv.c, bv.q) >= 80) out.push({ icon: "💪", text: `「${bt}」は正答率${pct(bv.c, bv.q)}%。得意な形式です！` });
   }
 
@@ -943,6 +1192,88 @@ function renderAnalysis() {
 $("missedList").addEventListener("click", e => {
   const b = e.target.closest("[data-speak]");
   if (b) speak(b.dataset.speak, 0.75);
+});
+
+// ============ backup / merge ============
+// Safari とホーム画面のアプリなど、保存場所が別の環境の間で記録を移す
+const BACKUP_PREFIX = "R800:";
+function exportCode() {
+  return BACKUP_PREFIX + btoa(unescape(encodeURIComponent(JSON.stringify(state))));
+}
+function parseCode(code) {
+  const body = code.trim().replace(/\s+/g, "");
+  if (!body.startsWith(BACKUP_PREFIX)) throw new Error("prefix");
+  const data = JSON.parse(decodeURIComponent(escape(atob(body.slice(BACKUP_PREFIX.length)))));
+  if (typeof data !== "object" || data === null || typeof data.xp !== "number") throw new Error("shape");
+  return data;
+}
+
+const maxMap = (a = {}, b = {}) => {
+  const out = { ...a };
+  for (const k in b) out[k] = Math.max(out[k] ?? -Infinity, b[k]);
+  return out;
+};
+// { key: {field: number} } を項目ごとに大きい方で合わせる
+const maxNested = (a = {}, b = {}) => {
+  const out = { ...a };
+  for (const k in b) out[k] = maxMap(out[k], b[k]);
+  return out;
+};
+
+// 同じバックアップを2回読み込んでも数字が増えないよう、合計ではなく大きい方を採用する
+function mergeInto(cur, inc) {
+  cur.xp = Math.max(cur.xp, inc.xp || 0);
+  if ((inc.lastDay || "") > (cur.lastDay || "")) { cur.lastDay = inc.lastDay; cur.streak = inc.streak || 0; }
+  else if (inc.lastDay === cur.lastDay) cur.streak = Math.max(cur.streak, inc.streak || 0);
+  cur.bestStreak = Math.max(cur.bestStreak || 0, inc.bestStreak || 0, cur.streak);
+  if (inc.today && inc.today.date) {
+    if (inc.today.date > (cur.today.date || "")) cur.today = { ...inc.today };
+    else if (inc.today.date === cur.today.date) cur.today.count = Math.max(cur.today.count, inc.today.count);
+  }
+  cur.reading = maxMap(cur.reading, inc.reading);
+  cur.shadow = maxMap(cur.shadow, inc.shadow);
+  cur.listening = maxMap(cur.listening, inc.listening);
+  cur.log = maxNested(cur.log, inc.log);
+  const st = inc.stats || {};
+  cur.stats = {
+    rType: maxNested(cur.stats.rType, st.rType),
+    sPart: maxNested(cur.stats.sPart, st.sPart),
+    missed: maxMap(cur.stats.missed, st.missed)
+  };
+  const words = new Map(cur.words.map(w => [w.w, w]));
+  (inc.words || []).forEach(w => { if (!words.has(w.w)) words.set(w.w, w); });
+  cur.words = [...words.values()];
+  for (const [k, v] of Object.entries(inc.memo || {})) {
+    const mine = cur.memo[k];
+    cur.memo[k] = !mine || mine === v ? v : mine.includes(v) ? mine : `${mine} / ${v}`;
+  }
+  if (!cur.goal.text && inc.goal && inc.goal.text) cur.goal = { ...inc.goal };
+  return cur;
+}
+
+$("backupCopy").addEventListener("click", async () => {
+  const code = exportCode();
+  $("backupText").value = code;
+  try {
+    await navigator.clipboard.writeText(code);
+    toast("コピーしました！移したい方で貼り付けてね");
+  } catch (e) {
+    $("backupText").select();
+    toast("下の欄のコードを長押しでコピーしてね");
+  }
+});
+$("backupLoad").addEventListener("click", () => {
+  let data;
+  try { data = parseCode($("backupText").value); }
+  catch (e) { toast("コードが正しくないみたい。全部コピーできているか確認してね"); return; }
+  const days = Object.keys(data.log || {}).length;
+  if (!confirm(`バックアップを読み込みます（学習記録 ${days}日分）。今ある記録と合わせます。よろしいですか？`)) return;
+  mergeInto(state, data);
+  saveState();
+  $("backupText").value = "";
+  toast("読み込みました！");
+  renderDashboard();
+  renderHeader();
 });
 
 // ============ init ============
