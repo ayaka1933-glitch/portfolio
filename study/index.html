@@ -71,6 +71,12 @@
         <p>Part 7形式の長文を時間内に解く。<br>単語をタップで意味チェック。</p>
         <span class="mode-meta" id="readingMeta"></span>
       </button>
+      <button class="mode-card listening" type="button" data-go="listening-list">
+        <span class="mode-icon">🎧</span>
+        <h2>Listening</h2>
+        <p>Part 2〜4形式の問題。<br>答えたあとにスクリプトと訳。</p>
+        <span class="mode-meta" id="listeningMeta"></span>
+      </button>
       <button class="mode-card shadow" type="button" data-go="shadow-list">
         <span class="mode-icon">🎙</span>
         <h2>Shadowing</h2>
@@ -118,12 +124,46 @@
       <article class="passage">
         <p class="passage-type" id="passageType"></p>
         <div class="passage-text" id="passageText"></div>
+        <button type="button" class="btn ja-toggle" id="jaToggle" hidden>全文訳を見る</button>
+        <div class="passage-ja" id="passageJa" hidden></div>
       </article>
       <div class="questions">
         <div id="questionList"></div>
         <button class="btn primary wide" type="button" id="submitReading">答え合わせ</button>
         <div class="result-box" id="readingResult" hidden></div>
       </div>
+    </div>
+  </section>
+
+  <!-- ============ LISTENING LIST ============ -->
+  <section class="view" id="view-listening-list">
+    <button class="back" type="button" data-go="home">← ホーム</button>
+    <h2 class="view-title">Listening <span class="muted">/ Part 2〜4</span></h2>
+    <p class="lead">本番と同じく、Part 2は選択肢が印刷されていません。答えたあとにスクリプト・訳・解説が出ます。</p>
+    <div class="list" id="listeningList"></div>
+    <p class="footnote">※ 音声はブラウザの読み上げ機能を使っています。本番のナレーターより少し機械的なので、本番形式の音声は公式問題集でも練習しよう。</p>
+  </section>
+
+  <!-- ============ LISTENING PLAY ============ -->
+  <section class="view" id="view-listening">
+    <div class="play-bar">
+      <button class="back" type="button" data-go="listening-list">← 一覧</button>
+      <span class="progress-label" id="lProgress"></span>
+    </div>
+    <div class="steps" id="lSteps"></div>
+    <div class="l-card">
+      <div id="lPrompt"></div>
+      <div class="l-controls">
+        <button class="btn primary" type="button" id="lPlay">▶ 音声を再生</button>
+        <label class="toggle"><input type="checkbox" id="lSlow"><span>ゆっくり（0.85x）</span></label>
+      </div>
+    </div>
+    <div id="lQuestions"></div>
+    <button class="btn primary wide" type="button" id="lSubmit">答え合わせ</button>
+    <div class="result-box" id="lResult" hidden></div>
+    <div class="panel l-transcript" id="lTranscript" hidden>
+      <div class="panel-head"><h3>スクリプトと訳</h3></div>
+      <div id="lScript"></div>
     </div>
   </section>
 
@@ -210,7 +250,7 @@
           <div class="meters" id="weekdayBars"></div>
         </div>
         <div class="ana-box">
-          <h4>リーディング：形式別の正答率</h4>
+          <h4>問題形式別の正答率</h4>
           <div class="meters" id="typeBars"></div>
         </div>
         <div class="ana-box">
