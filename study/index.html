@@ -26,10 +26,31 @@
   <!-- ============ HOME ============ -->
   <section class="view active" id="view-home">
     <div class="hero-card">
+      <div class="my-goal">
+        <div class="my-goal-body" id="goalView">
+          <p class="goal-msg" id="goalMsg"></p>
+          <p class="countdown" id="countdown"></p>
+        </div>
+        <button type="button" class="goal-edit" id="goalEdit" aria-label="目標メッセージを編集">✎</button>
+      </div>
+      <form class="goal-form" id="goalForm" hidden>
+        <label>自分へのメッセージ
+          <input type="text" id="goalText" maxlength="60" placeholder="例：12月の試験で800点を取る！">
+        </label>
+        <label>試験日（任意）
+          <input type="date" id="goalExam">
+        </label>
+        <div class="goal-form-actions">
+          <button type="button" class="btn" id="goalCancel">キャンセル</button>
+          <button type="submit" class="btn primary">保存</button>
+        </div>
+      </form>
+
       <p class="eyebrow">TODAY</p>
       <h1 id="rankTitle">Starter</h1>
       <div class="xp-bar"><span id="xpFill"></span></div>
       <p class="xp-text"><b id="xpNow">0</b> / <span id="xpNext">100</span> XP — 次のレベルまで</p>
+      <p class="cheer" id="cheer"></p>
 
       <div class="goal">
         <p>今日のゴール: <b id="goalCount">0</b> / 5 セット</p>
@@ -172,6 +193,29 @@
       <div class="stat"><span>合計学習時間</span><b id="statTime">0分</b></div>
       <div class="stat"><span>解いた問題</span><b><span id="statQ">0</span><small>問</small></b><em id="statQSub"></em></div>
       <div class="stat"><span>シャドーイング</span><b><span id="statSS">0</span><small>回</small></b></div>
+    </div>
+
+    <div class="panel analysis">
+      <div class="panel-head"><h3>分析</h3><span class="muted small">学習記録から自動で作成</span></div>
+      <ul class="insights" id="insights"></ul>
+      <div class="ana-grid">
+        <div class="ana-box">
+          <h4>曜日別の平均学習時間<span class="muted">（直近8週）</span></h4>
+          <div class="meters" id="weekdayBars"></div>
+        </div>
+        <div class="ana-box">
+          <h4>リーディング：形式別の正答率</h4>
+          <div class="meters" id="typeBars"></div>
+        </div>
+        <div class="ana-box">
+          <h4>シャドーイング：パート別の平均一致率</h4>
+          <div class="meters" id="partBars"></div>
+        </div>
+        <div class="ana-box">
+          <h4>言えなかった回数が多い単語</h4>
+          <ol class="missed" id="missedList"></ol>
+        </div>
+      </div>
     </div>
 
     <div class="dash-grid">

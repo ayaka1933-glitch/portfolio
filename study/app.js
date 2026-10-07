@@ -4,7 +4,8 @@ const DAILY_GOAL = 5;
 const RANKS = ["Starter", "Beginner", "Explorer", "Challenger", "Runner", "Climber", "Achiever", "Advanced", "Expert", "800 Master"];
 
 function loadState() {
-  const base = { xp: 0, streak: 0, lastDay: "", today: { date: "", count: 0 }, reading: {}, shadow: {}, words: [], log: {}, bestStreak: 0 };
+  const base = { xp: 0, streak: 0, lastDay: "", today: { date: "", count: 0 }, reading: {}, shadow: {}, words: [], log: {}, bestStreak: 0,
+    stats: { rType: {}, sPart: {}, missed: {} }, memo: {}, goal: { text: "", exam: "" } };
   try {
     return Object.assign(base, JSON.parse(localStorage.getItem(STORE_KEY) || localStorage.getItem("road745")) || {});
   } catch (e) {
@@ -87,7 +88,7 @@ function go(name) {
   if (name === "home") renderHome();
   if (name === "reading-list") renderPassageList();
   if (name === "shadow-list") renderSetList();
-  if (name === "dashboard") renderDashboard();
+  if (name === "dashboard") { calSelected = dayKey(); renderDashboard(); }
   currentView = name;
 }
 document.addEventListener("click", e => {
@@ -121,6 +122,8 @@ function renderHome() {
   $("shadowMeta").textContent = `${shadowDone} / ${SHADOW_SETS.length} セット挑戦済み`;
 
   $("weekMini").textContent = weekSummary();
+  renderGoal();
+  $("cheer").textContent = insights()[0].text;
   renderWords();
 }
 
@@ -260,6 +263,9 @@ $("submitReading").addEventListener("click", () => {
   const lg = todayLog();
   lg.rq += total;
   lg.rc += correct;
+  const rt = (state.stats.rType[p.type] ||= { q: 0, c: 0 });
+  rt.q += total;
+  rt.c += correct;
   recordActivity();
   addXp(xp);
 
@@ -373,10 +379,10 @@ $("setList").addEventListener("click", e => {
 function startSession(setIdx) {
   let items, id;
   if (setIdx < SHADOW_SETS.length) {
-    items = SHADOW_SETS[setIdx].items;
+    items = SHADOW_SETS[setIdx].items.map(it => ({ ...it, part: SHADOW_SETS[setIdx].name }));
     id = SHADOW_SETS[setIdx].id;
   } else {
-    items = SHADOW_SETS.flatMap(s => s.items).sort(() => Math.random() - 0.5).slice(0, 10);
+    items = SHADOW_SETS.flatMap(s => s.items.map(it => ({ ...it, part: s.name }))).sort(() => Math.random() - 0.5).slice(0, 10);
     id = "mix";
   }
   go("shadow");
@@ -555,6 +561,15 @@ function showScore(score, hits) {
   $("nextBtn").textContent = session.idx === session.items.length - 1 ? "結果を見る →" : "次へ →";
 
   todayLog().ss++;
+  const sp = (state.stats.sPart[item.part] ||= { n: 0, sum: 0 });
+  sp.n++;
+  sp.sum += score;
+  if (hits) {
+    $("diff").querySelectorAll(".miss").forEach(el => {
+      const w = el.textContent.toLowerCase().replace(/[^a-z']/g, "");
+      if (w.length > 3) state.stats.missed[w] = (state.stats.missed[w] || 0) + 1;
+    });
+  }
   saveState();
 
   // 同じ文のベスト更新分だけXPを付与(リトライでの稼ぎすぎ防止)
@@ -659,6 +674,7 @@ function renderDashboard() {
   $("weekLine").innerHTML = `直近7日: <b>${fmtMin(thisW.sec)}</b>・<b>${thisW.rq}</b>問・シャドーイング<b>${thisW.ss}</b>回` +
     (lastW.sec || thisW.sec ? `<span class="${diff >= 0 ? "up" : "down"}">（その前の7日より${diff >= 0 ? "+" : "−"}${Math.abs(diff)}分）</span>` : "");
 
+  renderAnalysis();
   renderCalendar();
   renderBars();
 }
@@ -689,7 +705,7 @@ function renderCalendar() {
     const lv = heatLevel(l);
     const val = calMetric === "time" ? (l.sec >= 60 ? `${Math.round(l.sec / 60)}m` : "") : (l.rq + l.ss ? l.rq + l.ss : "");
     const future = k > today;
-    html += `<button type="button" class="cal-day lv${lv}${k === today ? " today" : ""}${k === calSelected ? " sel" : ""}"
+    html += `<button type="button" class="cal-day lv${lv}${state.memo[k] ? " has-memo" : ""}${k === today ? " today" : ""}${k === calSelected ? " sel" : ""}"
       data-day="${k}" ${future ? "disabled" : ""} aria-label="${mo + 1}月${d}日 ${fmtMin(l.sec)} ${l.rq}問 シャドーイング${l.ss}回">
       <span class="cal-n">${d}</span><span class="cal-v">${val}</span></button>`;
   }
@@ -702,17 +718,30 @@ function renderCalendar() {
 
 function renderDayDetail() {
   const box = $("dayDetail");
-  if (!calSelected) { box.innerHTML = `<p class="muted small">日付をタップすると、その日の記録が見られます。</p>`; return; }
+  if (!calSelected) { box.innerHTML = `<p class="muted small">日付をタップすると、その日の記録とメモが見られます。</p>`; return; }
   const l = logOf(calSelected);
   const [, m, d] = calSelected.split("-").map(Number);
-  box.innerHTML = isStudied(l) ? `
+  const memo = state.memo[calSelected] || "";
+  box.innerHTML = (isStudied(l) ? `
     <p class="dd-date">${m}月${d}日の記録</p>
     <div class="dd-grid">
       <div><span>学習時間</span><b>${fmtMin(l.sec)}</b></div>
       <div><span>リーディング</span><b>${l.rq}問</b>${l.rq ? `<small>${l.rc}問正解</small>` : ""}</div>
       <div><span>シャドーイング</span><b>${l.ss}回</b></div>
       <div><span>獲得XP</span><b>${l.xp}</b></div>
-    </div>` : `<p class="dd-date">${m}月${d}日</p><p class="muted small">この日の記録はありません。</p>`;
+    </div>` : `<p class="dd-date">${m}月${d}日</p><p class="muted small">この日の学習記録はありません。</p>`) + `
+    <label class="memo">
+      <span>✎ ひとことメモ</span>
+      <textarea id="memoText" rows="2" maxlength="200" placeholder="例：Part 7の言い換えに気づけた！ / 明日は単語を復習する">${esc(memo)}</textarea>
+    </label>
+    <div class="memo-actions"><span class="muted small" id="memoState"></span><button type="button" class="btn" id="memoSave">メモを保存</button></div>`;
+  $("memoSave").addEventListener("click", () => {
+    const v = $("memoText").value.trim();
+    if (v) state.memo[calSelected] = v; else delete state.memo[calSelected];
+    saveState();
+    toast(v ? "メモを保存しました" : "メモを削除しました");
+    renderCalendar();
+  });
 }
 
 $("calGrid").addEventListener("click", e => {
@@ -778,6 +807,143 @@ function renderBars() {
   wrap.querySelector("svg").addEventListener("pointerleave", () => { tip.hidden = true; });
 }
 window.addEventListener("resize", () => { if (currentView === "dashboard") renderBars(); });
+
+// ============ goal message ============
+function renderGoal() {
+  const g = state.goal;
+  $("goalMsg").textContent = g.text || "✎ から、自分へのメッセージや目標を書いてみよう";
+  $("goalMsg").classList.toggle("placeholder", !g.text);
+  let cd = "";
+  if (g.exam) {
+    const days = Math.round((new Date(g.exam + "T00:00:00") - new Date(dayKey() + "T00:00:00")) / 864e5);
+    const [, m, d] = g.exam.split("-").map(Number);
+    cd = days > 0 ? `${m}/${d} の試験まで あと${days}日` : days === 0 ? "今日は試験日！いってらっしゃい！" : "";
+  }
+  $("countdown").textContent = cd;
+  $("countdown").hidden = !cd;
+}
+$("goalEdit").addEventListener("click", () => {
+  $("goalText").value = state.goal.text;
+  $("goalExam").value = state.goal.exam;
+  $("goalForm").hidden = false;
+  $("goalEdit").hidden = true;
+  $("goalView").hidden = true;
+  $("goalText").focus();
+});
+const closeGoalForm = () => {
+  $("goalForm").hidden = true;
+  $("goalEdit").hidden = false;
+  $("goalView").hidden = false;
+};
+$("goalCancel").addEventListener("click", closeGoalForm);
+$("goalForm").addEventListener("submit", e => {
+  e.preventDefault();
+  state.goal = { text: $("goalText").value.trim(), exam: $("goalExam").value };
+  saveState();
+  closeGoalForm();
+  renderGoal();
+  toast("目標を保存しました");
+});
+
+// ============ analysis ============
+const WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"];
+
+function weekdayAverages() {
+  const sum = Array(7).fill(0);
+  for (let i = -55; i <= 0; i++) {
+    const d = new Date(); d.setDate(d.getDate() + i);
+    sum[d.getDay()] += logOf(dayKey(i)).sec / 60;
+  }
+  return sum.map(v => v / 8);
+}
+
+const pct = (c, n) => Math.round((c / n) * 100);
+
+// 学習記録から、今の自分に合ったメッセージを優先度順に作る
+function insights() {
+  const out = [];
+  const today = logOf(dayKey());
+  const alive = state.lastDay === dayKey() || state.lastDay === dayKey(-1);
+  const streak = alive ? state.streak : 0;
+  const studiedDays = Object.values(state.log).filter(isStudied).length;
+
+  if (!isStudied(today) && streak > 0) out.push({ icon: "⏰", text: `${streak}日連続の記録が続いています。今日も5分だけやって、連続記録をのばそう！` });
+  else if (streak >= 3) out.push({ icon: "🔥", text: `${streak}日連続で学習中！コツコツ続けられています。` });
+  if (isStudied(today) && state.today.date === dayKey() && state.today.count >= DAILY_GOAL) out.push({ icon: "🎉", text: "今日のゴールを達成！よくがんばりました。" });
+
+  const thisW = sumRange(-6, 0), lastW = sumRange(-13, -7);
+  const diff = Math.round((thisW.sec - lastW.sec) / 60);
+  if (lastW.sec >= 60 && diff >= 5) out.push({ icon: "📈", text: `直近7日の学習時間は、その前の7日より${diff}分多いです。いいペース！` });
+  else if (lastW.sec >= 60 && diff <= -5) out.push({ icon: "🌱", text: `直近7日は、その前の7日より${-diff}分少なめ。忙しい日は1セットだけでもOK。` });
+
+  if (studiedDays >= 7) {
+    const avg = weekdayAverages();
+    const best = avg.indexOf(Math.max(...avg));
+    const worst = avg.indexOf(Math.min(...avg));
+    if (avg[best] >= 1) out.push({ icon: "📅", text: `${WEEKDAYS[best]}曜日が一番勉強できている日です。${avg[worst] < 1 ? `${WEEKDAYS[worst]}曜日は少なめなので、短いセットから始めてみよう。` : ""}` });
+  }
+
+  const types = Object.entries(state.stats.rType).filter(([, v]) => v.q >= 4);
+  if (types.length) {
+    types.sort((a, b) => a[1].c / a[1].q - b[1].c / b[1].q);
+    const [wt, wv] = types[0];
+    const [bt, bv] = types[types.length - 1];
+    if (pct(wv.c, wv.q) < 80) out.push({ icon: "🎯", text: `リーディングは「${wt}」の正答率が${pct(wv.c, wv.q)}%で一番低めです。解説で、本文のどこが言い換えられているかを確認しよう。` });
+    if (types.length > 1 && pct(bv.c, bv.q) >= 80) out.push({ icon: "💪", text: `「${bt}」は正答率${pct(bv.c, bv.q)}%。得意な形式です！` });
+  }
+
+  const parts = Object.entries(state.stats.sPart).filter(([, v]) => v.n >= 3);
+  if (parts.length) {
+    const all = parts.reduce((a, [, v]) => ({ n: a.n + v.n, sum: a.sum + v.sum }), { n: 0, sum: 0 });
+    const avg = Math.round(all.sum / all.n);
+    if (avg >= 85) out.push({ icon: "🎙", text: `シャドーイングの平均一致率は${avg}%。英文を隠すモードや1.1xにも挑戦してみよう。` });
+    else if (avg < 60) out.push({ icon: "🎙", text: `シャドーイングの平均一致率は${avg}%。0.75xでゆっくりまねするのが近道です。` });
+  }
+
+  const missed = Object.entries(state.stats.missed).sort((a, b) => b[1] - a[1]);
+  if (missed.length && missed[0][1] >= 2) out.push({ icon: "🗣", text: `「${missed[0][0]}」が言いにくいようです。単語だけ何度か発音してから、文で練習してみよう。` });
+
+  if (!out.length) out.push({ icon: "✨", text: studiedDays ? "今日も1セット、一緒にがんばろう！" : "まずは1セット解いてみよう！記録がたまると、ここに分析が出ます。" });
+  return out;
+}
+
+function meters(rows, max, fmt) {
+  if (!rows.length) return `<p class="muted small">まだデータがありません。</p>`;
+  return rows.map(([label, v, sub]) => `
+    <div class="meter">
+      <span class="m-label">${esc(label)}</span>
+      <span class="m-track"><span class="m-fill" style="width:${Math.min(100, (v / max) * 100)}%"></span></span>
+      <span class="m-val">${fmt(v)}${sub ? `<small>${sub}</small>` : ""}</span>
+    </div>`).join("");
+}
+
+function renderAnalysis() {
+  $("insights").innerHTML = insights().slice(0, 5).map(i => `<li><span>${i.icon}</span><p>${esc(i.text)}</p></li>`).join("");
+
+  const wd = weekdayAverages();
+  $("weekdayBars").innerHTML = Object.keys(state.log).length
+    ? meters(WEEKDAYS.map((w, i) => [w, wd[i]]), Math.max(10, ...wd), v => `${Math.round(v)}分`)
+    : meters([], 1);
+
+  $("typeBars").innerHTML = meters(
+    Object.entries(state.stats.rType).sort((a, b) => b[1].c / b[1].q - a[1].c / a[1].q)
+      .map(([t, v]) => [t, pct(v.c, v.q), `${v.c}/${v.q}問`]),
+    100, v => `${v}%`);
+
+  $("partBars").innerHTML = meters(
+    SHADOW_SETS.map(s => s.name).filter(n => state.stats.sPart[n])
+      .map(n => [n, Math.round(state.stats.sPart[n].sum / state.stats.sPart[n].n), `${state.stats.sPart[n].n}回`]),
+    100, v => `${v}%`);
+
+  const missed = Object.entries(state.stats.missed).sort((a, b) => b[1] - a[1]).slice(0, 5);
+  $("missedList").innerHTML = missed.length
+    ? missed.map(([w, n]) => `<li><button type="button" data-speak="${esc(w)}">🔊</button><b>${esc(w)}</b><span class="muted">${n}回</span></li>`).join("")
+    : `<li class="muted small empty">シャドーイングで言えなかった単語がここに出ます。</li>`;
+}
+$("missedList").addEventListener("click", e => {
+  const b = e.target.closest("[data-speak]");
+  if (b) speak(b.dataset.speak, 0.75);
+});
 
 // ============ init ============
 renderHome();
