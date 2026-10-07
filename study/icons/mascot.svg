@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- tuft -->
+  <path d="M244 112 C230 70 250 48 268 62 C272 40 304 44 296 82 C318 70 334 92 312 112 Z" fill="#14b4d4"/>
+  <!-- body -->
+  <ellipse cx="256" cy="282" rx="164" ry="168" fill="#f5b81c"/>
+  <!-- wings -->
+  <ellipse cx="102" cy="318" rx="34" ry="62" transform="rotate(18 102 318)" fill="#e9a20c"/>
+  <ellipse cx="410" cy="318" rx="34" ry="62" transform="rotate(-18 410 318)" fill="#e9a20c"/>
+  <!-- belly -->
+  <ellipse cx="256" cy="344" rx="104" ry="90" fill="#ffdb6e"/>
+  <!-- eyes -->
+  <ellipse cx="196" cy="248" rx="24" ry="28" fill="#1d4e5f"/>
+  <ellipse cx="316" cy="248" rx="24" ry="28" fill="#1d4e5f"/>
+  <circle cx="205" cy="238" r="9" fill="#fff"/>
+  <circle cx="325" cy="238" r="9" fill="#fff"/>
+  <!-- cheeks -->
+  <ellipse cx="160" cy="300" rx="26" ry="16" fill="#ff8fa3" opacity=".75"/>
+  <ellipse cx="352" cy="300" rx="26" ry="16" fill="#ff8fa3" opacity=".75"/>
+  <!-- beak (open: singing) -->
+  <path d="M226 284 Q256 268 286 284 Q256 300 226 284 Z" fill="#ff7a3d"/>
+  <path d="M234 292 Q256 324 278 292 Q256 302 234 292 Z" fill="#e85d2a"/>
+  <!-- feet -->
+  <path d="M214 440 l-10 18 M214 440 l2 20 M214 440 l12 16" stroke="#ff7a3d" stroke-width="10" stroke-linecap="round"/>
+  <path d="M298 440 l-12 16 M298 440 l-2 20 M298 440 l10 18" stroke="#ff7a3d" stroke-width="10" stroke-linecap="round"/>
+</svg>

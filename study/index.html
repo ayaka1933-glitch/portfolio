@@ -6,6 +6,12 @@
 <title>Road to 800 | English Study</title>
 <meta name="description" content="TOEIC 800点を目指す、リーディングとシャドーイングの学習アプリ。">
 <meta name="robots" content="noindex">
+<meta name="theme-color" content="#14b4d4">
+<link rel="icon" href="icons/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="icons/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<meta name="apple-mobile-web-app-title" content="Road to 800">
+<link rel="manifest" href="manifest.webmanifest">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
@@ -14,7 +20,7 @@
 <body>
 
 <header class="app-header">
-  <button class="logo" type="button" data-go="home">Road to 800<span class="dot">.</span></button>
+  <button class="logo" type="button" data-go="home"><img src="icons/mascot.svg" alt="" class="logo-bird"><span>Road to 800<span class="dot">.</span></span></button>
   <div class="header-stats">
     <button class="chip" type="button" data-go="dashboard" title="ダッシュボード">📊</button>
     <span class="chip" title="連続学習日数">🔥 <b id="streak">0</b>日</span>
@@ -255,6 +261,7 @@
   <!-- ============ SUMMARY ============ -->
   <section class="view" id="view-summary">
     <div class="summary-card">
+      <img src="icons/mascot.svg" alt="" class="summary-bird">
       <p class="eyebrow">NICE WORK</p>
       <h2 id="summaryTitle">セット完了！</h2>
       <p class="summary-xp">+<span id="summaryXp">0</span> XP</p>
