@@ -1276,5 +1276,33 @@ $("backupLoad").addEventListener("click", () => {
   renderHeader();
 });
 
+// ============ update check ============
+// GitHub Pages は古いファイルを最大10分ほど使い続けるので、version.json を毎回取り直して新版を知らせる
+const APP_VERSION = (() => {
+  const src = document.currentScript && document.currentScript.src;
+  try { return new URL(src).searchParams.get("v") || ""; } catch (e) { return ""; }
+})();
+let newVersion = null;
+let lastCheck = 0;
+async function checkUpdate() {
+  if (!APP_VERSION || location.protocol === "file:" || Date.now() - lastCheck < 60000) return;
+  lastCheck = Date.now();
+  try {
+    const res = await fetch(`version.json?t=${Date.now()}`, { cache: "no-store" });
+    const { version } = await res.json();
+    if (version && version !== APP_VERSION) {
+      newVersion = version;
+      $("updateBar").hidden = false;
+    }
+  } catch (e) { /* offline など。次の機会に確認する */ }
+}
+// URL を変えて開き直すと、古いキャッシュを使わずに新しいファイルを読み込める
+$("updateBtn").addEventListener("click", () => {
+  flush();
+  location.replace(`${location.pathname}?v=${newVersion}`);
+});
+document.addEventListener("visibilitychange", () => { if (!document.hidden) checkUpdate(); });
+
 // ============ init ============
 renderHome();
+checkUpdate();
