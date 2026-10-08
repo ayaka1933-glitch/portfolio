@@ -711,3 +711,4 @@ main { max-width: 980px; margin: 0 auto; padding: 24px 16px 64px; }
   border-radius: 99px;
   padding: 6px 16px;
 }
+.talk-link { color: inherit; text-decoration: none; }
