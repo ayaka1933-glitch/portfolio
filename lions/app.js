@@ -85,6 +85,27 @@ function fmtDate(t) {
   return `${d.getMonth() + 1}/${d.getDate()}`;
 }
 
+// confirm() の代わり。アプリ内のダイアログで確認する（埋め込み表示では confirm が使えないため）
+function ask(title, body, okLabel, cancelLabel, danger) {
+  return new Promise(resolve => {
+    $("askTitle").textContent = title;
+    $("askBody").textContent = body;
+    $("askBody").hidden = !body;
+    $("askOk").textContent = okLabel;
+    $("askOk").classList.toggle("danger", !!danger);
+    $("askCancel").textContent = cancelLabel;
+    $("ask").hidden = false;
+    $("askOk").focus();
+    const done = v => {
+      $("ask").hidden = true;
+      $("askOk").onclick = $("askCancel").onclick = null;
+      resolve(v);
+    };
+    $("askOk").onclick = () => done(true);
+    $("askCancel").onclick = () => done(false);
+  });
+}
+
 let toastTimer;
 function toast(msg) {
   const t = $("toast");
@@ -241,9 +262,9 @@ $("randomBrief").addEventListener("click", () => {
 let dojo = null;   // 開いているセッション
 let dojoTick = null;
 
-function startDojo(briefId, surprise) {
+async function startDojo(briefId, surprise) {
   const active = state.sessions.find(s => s.id === state.active && !s.done);
-  if (active && !confirm("途中のブリーフがあります。新しく始めますか？（途中の分は Judge Room に残ります）")) {
+  if (active && !(await ask("途中のブリーフがあります。新しく始めますか？", "途中の分は Judge Room に残ります。", "新しく始める", "途中から再開"))) {
     openDojo(active);
     return;
   }
@@ -372,10 +393,10 @@ $("dojoExit").addEventListener("click", () => {
   go("home");
 });
 
-function finishDojo() {
+async function finishDojo() {
   const s = dojo;
   const oneline = s.texts.oneline || "";
-  if (!lines(oneline).length && !confirm("「一行で言い切る」が空です。このまま提出しますか？")) return;
+  if (!lines(oneline).length && !(await ask("「一行で言い切る」が空です。このまま提出しますか？", "", "提出する", "書きに戻る"))) return;
   const firstSubmit = !s.submitted;
   s.done = true;
   s.submitted = true;
@@ -554,8 +575,8 @@ $("judgeResume").addEventListener("click", () => {
   judging.done = false;
   openDojo(judging);
 });
-$("judgeDelete").addEventListener("click", () => {
-  if (!confirm("この案を削除しますか？元に戻せません。")) return;
+$("judgeDelete").addEventListener("click", async () => {
+  if (!(await ask("この案を削除しますか？", "元に戻せません。", "削除する", "やめる", true))) return;
   state.sessions = state.sessions.filter(s => s !== judging);
   saveState();
   go("bank");
@@ -648,7 +669,7 @@ $("noteForm").addEventListener("submit", e => {
   renderNotes();
   addXp(3, true);
 });
-$("noteList").addEventListener("click", e => {
+$("noteList").addEventListener("click", async e => {
   const v = e.target.closest("[data-vote]"), d = e.target.closest("[data-note-del]");
   if (v) {
     const n = state.plan.notes.find(x => x.at === +v.dataset.vote);
@@ -656,7 +677,7 @@ $("noteList").addEventListener("click", e => {
     if (n.votes === 2) toast("2人以上が言っている → 原則に昇格。シートに反映しよう");
   }
   if (d) {
-    if (!confirm("このメモを削除しますか？")) return;
+    if (!(await ask("このメモを削除しますか？", "", "削除する", "やめる", true))) return;
     state.plan.notes = state.plan.notes.filter(x => x.at !== +d.dataset.noteDel);
   }
   saveState();
@@ -665,6 +686,11 @@ $("noteList").addEventListener("click", e => {
 
 $("planViewBtn").addEventListener("click", () => go("plan-sheet"));
 $("planPrint").addEventListener("click", () => window.print());
+// 埋め込み表示（Artifact）では印刷とAPI呼び出しができないので隠す
+if (window.LION_EMBED) {
+  $("planPrint").hidden = true;
+  document.querySelector(".ai-panel").hidden = true;
+}
 
 function renderSheet() {
   const f = state.plan.fields;
@@ -741,9 +767,9 @@ function openCase(c) {
   $("caseIdea").textContent = c.idea;
   $("caseLesson").textContent = `📝 ${c.lesson}`;
 }
-$("caseReveal").addEventListener("click", () => {
+$("caseReveal").addEventListener("click", async () => {
   const insight = $("caseMyInsight").value.trim(), idea = $("caseMyIdea").value.trim();
-  if (!insight && !idea && !confirm("自分の分解を書かずに答えを見ますか？")) return;
+  if (!insight && !idea && !(await ask("自分の分解を書かずに答えを見ますか？", "先に書いてから見るほうが力がつきます。", "答えを見る", "書いてみる"))) return;
   const first = !state.cases[currentCase.name];
   state.cases[currentCase.name] = { insight, idea };
   if (first) {
