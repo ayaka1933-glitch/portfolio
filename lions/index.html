@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lion Lab | Young Lions Training</title>
+<meta name="description" content="ヤングライオンズ（ヤングカンヌ）国内予選と本戦に向けて、ブリーフ対応・アイデア発散・セルフ審査を練習するトレーニングアプリ。">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#14213d">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../study/icons/icon-180.png">
+<meta name="apple-mobile-web-app-title" content="Lion Lab">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="app-header">
+  <button class="logo" type="button" data-go="home"><span class="logo-mark">🦁</span><span>Lion Lab<span class="dot">.</span></span></button>
+  <div class="header-stats">
+    <span class="chip" title="連続日数">🔥 <b id="streak">0</b>日</span>
+    <span class="chip" title="ランク">Lv.<b id="level">1</b></span>
+  </div>
+</header>
+
+<main>
+  <!-- ============ HOME ============ -->
+  <section class="view active" id="view-home">
+    <div class="hero-card">
+      <p class="eyebrow">ROAD TO CANNES</p>
+      <h1 id="rankTitle">Lv.1 Cub</h1>
+      <div class="xp-bar"><span id="xpFill"></span></div>
+      <p class="xp-text"><b id="xpNow">0</b> / <span id="xpNext">100</span> XP</p>
+
+      <div class="countdown-box">
+        <div>
+          <p class="cd-label" id="cdLabel">国内予選まで</p>
+          <p class="cd-num"><b id="cdDays">--</b><small> 日</small></p>
+        </div>
+        <form class="cd-form" id="cdForm">
+          <input type="date" id="cdDate" aria-label="目標日">
+          <button class="mini" type="submit">設定</button>
+        </form>
+      </div>
+      <p class="cd-note">日程は年ごとに変わります。カンヌライオンズ日本の公式サイトで確認して設定してください。</p>
+      <div class="hero-stats">
+        <span><b id="statIdeas">0</b>アイデア</span>
+        <span><b id="statBriefs">0</b>ブリーフ</span>
+        <span><b id="statBest">-</b>最高評価</span>
+      </div>
+    </div>
+
+    <div class="mode-grid">
+      <button class="mode-card big" type="button" data-go="brief-list">
+        <span class="mode-icon">🦁</span>
+        <h2>Brief Dojo</h2>
+        <p>ブリーフを受けて、時間内にボードまで。<br>本番の流れを7ステップで体に入れる。</p>
+        <span class="mode-meta" id="dojoMeta"></span>
+      </button>
+      <button class="mode-card" type="button" data-go="spark">
+        <span class="mode-icon">⚡</span>
+        <h2>Idea Sprint</h2>
+        <p>10分で何案出せる？<br>切り口カードで発散の筋トレ。</p>
+        <span class="mode-meta" id="sparkMeta"></span>
+      </button>
+      <button class="mode-card" type="button" data-go="bank">
+        <span class="mode-icon">⚖️</span>
+        <h2>Judge Room</h2>
+        <p>作った案を審査員の目で採点。<br>AI審査員にも見てもらえる。</p>
+        <span class="mode-meta" id="bankMeta"></span>
+      </button>
+      <button class="mode-card" type="button" data-go="learn">
+        <span class="mode-icon">📚</span>
+        <h2>Lion School</h2>
+        <p>勝つための原則、受賞作の分解、<br>英語ボードの型。</p>
+        <span class="mode-meta" id="learnMeta"></span>
+      </button>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <h3>今週のメニュー</h3>
+        <span class="muted small" id="weekRange"></span>
+      </div>
+      <ul class="routine" id="routine"></ul>
+    </div>
+
+    <div class="panel week">
+      <div class="panel-head"><h3>直近7日</h3><span class="muted small">出したアイデア数</span></div>
+      <div class="week-bars" id="weekBars"></div>
+    </div>
+
+    <a class="cross-link" href="../talk/">🎤 英語プレゼンの練習は <b>Talk Lab</b> へ →</a>
+    <p class="footnote">記録はこのブラウザにだけ保存されます。練習用ブリーフの団体はすべて架空です。</p>
+  </section>
+
+  <!-- ============ BRIEF LIST ============ -->
+  <section class="view" id="view-brief-list">
+    <button class="back" type="button" data-go="home">← ホーム</button>
+    <h2 class="view-title">Brief Dojo</h2>
+    <p class="lead">部門と時間を選んで、ブリーフを受け取ろう。本番と同じく、<b>社会課題に取り組む団体</b>からの依頼です。</p>
+
+    <h3 class="sub-title">1. 部門</h3>
+    <div class="chips" id="catChips"></div>
+    <p class="cat-focus" id="catFocus"></p>
+
+    <h3 class="sub-title">2. 時間</h3>
+    <div class="chips" id="modeChips"></div>
+
+    <h3 class="sub-title">3. ブリーフ</h3>
+    <button class="btn primary wide" type="button" id="randomBrief">🎲 ランダムに受け取る（本番っぽく）</button>
+    <div class="list" id="briefList"></div>
+  </section>
+
+  <!-- ============ DOJO ============ -->
+  <section class="view" id="view-dojo">
+    <div class="play-bar">
+      <button class="back" type="button" id="dojoExit">← 中断して保存</button>
+      <span class="timer" id="dojoTimer">--:--</span>
+    </div>
+
+    <details class="brief-card" id="briefCard" open>
+      <summary><span id="briefOrg"></span><span class="muted small" id="briefCat"></span></summary>
+      <dl>
+        <dt>課題</dt><dd id="briefChallenge"></dd>
+        <dt>ターゲット</dt><dd id="briefTarget"></dd>
+        <dt>ゴール行動</dt><dd id="briefAction"></dd>
+        <dt>条件</dt><dd id="briefMandatory"></dd>
+      </dl>
+    </details>
+
+    <div class="steps" id="dojoSteps"></div>
+
+    <div class="phase-card">
+      <div class="phase-head">
+        <h3 id="phaseName"></h3>
+        <span class="phase-time" id="phaseTime"></span>
+      </div>
+      <div class="phase-bar"><span id="phaseFill"></span></div>
+      <p class="phase-guide" id="phaseGuide"></p>
+      <div class="lens-box" id="lensBox" hidden>
+        <button class="btn small-btn" type="button" id="lensDraw">🃏 切り口カードを引く</button>
+        <div class="lens-card" id="lensCard" hidden></div>
+      </div>
+      <textarea id="phaseText" rows="10"></textarea>
+      <p class="muted small" id="phaseCount"></p>
+      <div class="score-actions">
+        <button class="btn" type="button" id="phasePrev">← 戻る</button>
+        <button class="btn primary" type="button" id="phaseNext">次へ →</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ SPARK ============ -->
+  <section class="view" id="view-spark">
+    <button class="back" type="button" data-go="home">← ホーム</button>
+    <h2 class="view-title">Idea Sprint</h2>
+    <p class="lead">お題と切り口カードを受け取って、10分で1行1案。<b>質より数</b>。20案を超えたあたりから、他のチームと被らない案が出てきます。</p>
+
+    <div class="spark-card">
+      <div class="spark-top">
+        <div class="ring" id="sparkRing"><span id="sparkClock">10:00</span></div>
+        <div>
+          <p class="spark-issue" id="sparkIssue"></p>
+          <p class="small" id="sparkChallenge"></p>
+        </div>
+      </div>
+      <div class="lens-card" id="sparkLens"></div>
+      <div class="row-actions">
+        <button class="btn small-btn" type="button" id="sparkShuffle">🎲 お題を変える</button>
+        <button class="btn small-btn" type="button" id="sparkLensBtn">🃏 カードを変える</button>
+      </div>
+      <textarea id="sparkText" rows="10" placeholder="スタートを押してから、1行に1案ずつ書く"></textarea>
+      <p class="spark-count"><b id="sparkNum">0</b> 案 <span class="muted small" id="sparkBest"></span></p>
+      <div class="score-actions">
+        <button class="btn primary" type="button" id="sparkStart">▶ スタート</button>
+        <button class="btn" type="button" id="sparkStop" hidden>終了する</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ BANK ============ -->
+  <section class="view" id="view-bank">
+    <button class="back" type="button" data-go="home">← ホーム</button>
+    <h2 class="view-title">Judge Room</h2>
+    <p class="lead">Brief Dojo で作った案の一覧。開いて<b>審査員の目で採点</b>しよう。時間を置いてから見ると、自分の案に厳しくなれます。</p>
+    <div class="list" id="bankList"></div>
+    <p class="muted small" id="bankEmpty">まだ案がありません。Brief Dojo で1本やってみよう。</p>
+  </section>
+
+  <!-- ============ JUDGE ============ -->
+  <section class="view" id="view-judge">
+    <button class="back" type="button" data-go="bank">← 一覧</button>
+    <div class="judge-head">
+      <p class="eyebrow" id="judgeMeta"></p>
+      <h2 class="view-title" id="judgeTitle"></h2>
+      <p class="judge-oneline" id="judgeOneline"></p>
+    </div>
+
+    <details class="panel" id="judgeDetail">
+      <summary>作業メモを見る</summary>
+      <div id="judgeNotes"></div>
+    </details>
+
+    <div class="panel">
+      <h3>セルフ審査</h3>
+      <p class="muted small">各項目を1〜5で。迷ったら低いほうをつける。</p>
+      <div class="criteria" id="criteria"></div>
+      <div class="verdict" id="verdict"></div>
+    </div>
+
+    <div class="panel ai-panel">
+      <div class="panel-head"><h3>🤖 AI審査員</h3><span class="muted small" id="aiKeyNote"></span></div>
+      <p class="small">カンヌの審査員になりきったAIが、厳しめに講評します。<b>案をもっと尖らせる</b>ための壁打ち相手として使ってください。</p>
+      <button class="btn ai-btn" type="button" id="aiJudge">講評をもらう</button>
+      <div class="ai-feedback" id="aiBox" hidden></div>
+      <details class="key-panel" id="keyPanel">
+        <summary>🔑 Claude APIキーの設定</summary>
+        <p class="small">AI審査員は、あなた自身のAnthropic APIキーで動きます（利用料はキーの持ち主に発生します）。キーは<b>このブラウザの中だけ</b>に保存され、Anthropic以外には送られません。Talk Labと共通です。共用のPCでは使わないでください。</p>
+        <div class="key-row">
+          <input type="password" id="apiKey" placeholder="sk-ant-..." autocomplete="off">
+          <button class="btn primary" type="button" id="keySave">保存</button>
+        </div>
+        <p class="small muted" id="keyStatus"></p>
+        <button class="link-btn" type="button" id="keyDelete" hidden>キーを削除する</button>
+      </details>
+    </div>
+
+    <div class="score-actions">
+      <button class="btn" type="button" id="judgeResume">続きを書く</button>
+      <button class="link-btn danger" type="button" id="judgeDelete">この案を削除</button>
+    </div>
+  </section>
+
+  <!-- ============ LEARN ============ -->
+  <section class="view" id="view-learn">
+    <button class="back" type="button" data-go="home">← ホーム</button>
+    <h2 class="view-title">Lion School</h2>
+    <div class="tabs" id="learnTabs">
+      <button type="button" class="tab active" data-tab="principles">勝ちの原則</button>
+      <button type="button" class="tab" data-tab="cases">受賞作を分解</button>
+      <button type="button" class="tab" data-tab="phrases">英語ボード</button>
+      <button type="button" class="tab" data-tab="cats">部門</button>
+    </div>
+    <div class="tab-body" id="tab-principles"></div>
+    <div class="tab-body" id="tab-cases" hidden>
+      <p class="lead">ヒントだけを見て、<b>自分ならどう解くか</b>を書いてから答え合わせ。構造（課題→インサイト→アイデア）で読むのがコツ。</p>
+      <div class="list" id="caseList"></div>
+    </div>
+    <div class="tab-body" id="tab-phrases" hidden>
+      <p class="lead">本戦のボードとプレゼンは英語。型を持っておくと、24時間の中で英語に時間を取られません。</p>
+      <div id="phraseList"></div>
+    </div>
+    <div class="tab-body" id="tab-cats" hidden>
+      <p class="lead">部門ごとに「何で勝負するか」が違います。提出物の仕様や制作時間は年ごとに変わるので、<b>必ずその年の公式要項を確認</b>してください。</p>
+      <div id="catList"></div>
+    </div>
+  </section>
+
+  <!-- ============ CASE ============ -->
+  <section class="view" id="view-case">
+    <button class="back" type="button" id="caseBack">← 一覧</button>
+    <p class="eyebrow" id="caseBrand"></p>
+    <h2 class="view-title" id="caseName"></h2>
+    <div class="panel">
+      <h3>ヒント</h3>
+      <p id="caseHint"></p>
+      <p class="muted small" id="caseChallengeQ"></p>
+    </div>
+    <div class="panel">
+      <h3>あなたの分解</h3>
+      <label class="field">インサイトは？<textarea id="caseMyInsight" rows="2"></textarea></label>
+      <label class="field">アイデアを一行で言うと？<textarea id="caseMyIdea" rows="2"></textarea></label>
+      <button class="btn primary wide" type="button" id="caseReveal">答え合わせ</button>
+    </div>
+    <div class="panel case-answer" id="caseAnswer" hidden>
+      <dl>
+        <dt>Challenge</dt><dd id="caseChallenge"></dd>
+        <dt>Insight</dt><dd id="caseInsight"></dd>
+        <dt>Idea</dt><dd id="caseIdea"></dd>
+      </dl>
+      <p class="case-lesson" id="caseLesson"></p>
+    </div>
+  </section>
+
+  <!-- ============ SUMMARY ============ -->
+  <section class="view" id="view-summary">
+    <div class="summary-card">
+      <p class="summary-mark">🦁</p>
+      <p class="eyebrow">WELL DONE</p>
+      <h2 id="summaryTitle">おつかれさま！</h2>
+      <p class="summary-xp">+<span id="summaryXp">0</span> XP</p>
+      <p id="summaryText"></p>
+      <div class="score-actions">
+        <button class="btn" type="button" id="summaryJudge">審査する</button>
+        <button class="btn primary" type="button" data-go="home">ホームへ</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
