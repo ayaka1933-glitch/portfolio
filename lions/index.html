@@ -60,6 +60,14 @@
         <p>ブリーフを受けて、時間内にボードまで。<br>本番の流れを7ステップで体に入れる。</p>
         <span class="mode-meta" id="dojoMeta"></span>
       </button>
+      <button class="mode-card plan-card" type="button" data-go="plan">
+        <span class="mode-icon">📋</span>
+        <div>
+          <h2>勝ち筋シート</h2>
+          <p>部門・役割・時間配分・選ぶ基準を1枚に。本番は、このシートどおりに動くだけ。</p>
+        </div>
+        <span class="mode-meta" id="planMeta"></span>
+      </button>
       <button class="mode-card" type="button" data-go="spark">
         <span class="mode-icon">⚡</span>
         <h2>Idea Sprint</h2>
@@ -110,6 +118,8 @@
     <h3 class="sub-title">2. 時間</h3>
     <div class="chips" id="modeChips"></div>
 
+    <button type="button" class="plan-remind" id="planRemind" data-go="plan" hidden></button>
+
     <h3 class="sub-title">3. ブリーフ</h3>
     <button class="btn primary wide" type="button" id="randomBrief">🎲 ランダムに受け取る（本番っぽく）</button>
     <div class="list" id="briefList"></div>
@@ -141,6 +151,7 @@
       </div>
       <div class="phase-bar"><span id="phaseFill"></span></div>
       <p class="phase-guide" id="phaseGuide"></p>
+      <div class="pick-box" id="pickBox" hidden></div>
       <div class="lens-box" id="lensBox" hidden>
         <button class="btn small-btn" type="button" id="lensDraw">🃏 切り口カードを引く</button>
         <div class="lens-card" id="lensCard" hidden></div>
@@ -233,6 +244,48 @@
       <button class="btn" type="button" id="judgeResume">続きを書く</button>
       <button class="link-btn danger" type="button" id="judgeDelete">この案を削除</button>
     </div>
+  </section>
+
+  <!-- ============ PLAN ============ -->
+  <section class="view" id="view-plan">
+    <div class="play-bar">
+      <button class="back" type="button" data-go="home">← ホーム</button>
+      <button class="btn small-btn" type="button" id="planViewBtn">📄 1枚で見る</button>
+    </div>
+    <h2 class="view-title">勝ち筋シート</h2>
+    <p class="lead">日本代表になるための「自分たちの勝ち方」を1枚に。動画や記事で学んだことは下の<b>学びメモ</b>にためて、<b>複数の人が言っていること</b>だけをシートに反映していこう。</p>
+    <div class="plan-progress"><div class="xp-bar light"><span id="planFill"></span></div><span class="small muted" id="planPct"></span></div>
+
+    <div id="planForm"></div>
+
+    <div class="panel">
+      <div class="panel-head"><h3>✅ 案を選ぶ基準</h3><span class="muted small">Brief Dojo の「選び抜く」に表示されます</span></div>
+      <ol class="crit-edit" id="critEdit"></ol>
+      <form class="key-row" id="critAdd">
+        <input type="text" id="critInput" placeholder="基準を追加（例：見た瞬間に笑える）" maxlength="60" autocomplete="off">
+        <button class="btn" type="submit">追加</button>
+      </form>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><h3>🎥 学びメモ</h3><span class="muted small" id="noteCount"></span></div>
+      <p class="small">受賞者の動画・記事・セミナーで学んだことを1つずつ。同じことを言っている人が増えたら <b>＋1</b>。<b>2人以上</b>が言っていることは「原則」、1人だけなら「その人のスタイル」と考えよう。</p>
+      <form class="note-form" id="noteForm">
+        <input type="text" id="noteSource" placeholder="出典（例：YouTube／〇〇さん 2026 GOLD）" maxlength="80" autocomplete="off">
+        <textarea id="noteText" rows="2" placeholder="学んだこと（例：最後の3時間は足すのをやめて削るだけにする）" maxlength="300"></textarea>
+        <button class="btn primary" type="submit">メモを追加</button>
+      </form>
+      <ul class="notes" id="noteList"></ul>
+    </div>
+  </section>
+
+  <!-- ============ PLAN SHEET（1枚表示） ============ -->
+  <section class="view" id="view-plan-sheet">
+    <div class="play-bar">
+      <button class="back" type="button" data-go="plan">← 編集に戻る</button>
+      <button class="btn small-btn" type="button" id="planPrint">🖨 印刷</button>
+    </div>
+    <div class="sheet" id="planSheet"></div>
   </section>
 
   <!-- ============ LEARN ============ -->

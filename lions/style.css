@@ -282,6 +282,54 @@ textarea:focus, input:focus { outline: none; border-color: var(--gold); }
 .summary-card h2 { font-size: 24px; margin-top: 4px; }
 .summary-xp { font-family: var(--font-en); font-size: 28px; font-weight: 800; color: var(--gold); margin: 6px 0; }
 
+/* ============ plan（勝ち筋シート） ============ */
+.mode-card.plan-card {
+  grid-column: 1 / -1; flex-direction: row; align-items: center; gap: 14px; flex-wrap: wrap;
+  background: var(--navy); color: var(--white); border: none;
+}
+.plan-card > div { flex: 1 1 200px; }
+.plan-card .mode-meta { margin: 0; padding: 0; color: var(--gold-light); }
+.plan-remind {
+  display: block; width: 100%; text-align: left; margin-top: 16px;
+  padding: 10px 14px; border-radius: 12px; background: var(--navy); color: var(--white); font-size: 13px;
+}
+.plan-remind b { color: var(--gold-light); }
+.plan-progress { display: flex; align-items: center; gap: 10px; }
+.plan-progress .xp-bar { flex: 1; }
+.xp-bar.light { background: var(--line); }
+.crit-edit { padding-left: 20px; display: grid; gap: 6px; font-size: 14px; }
+.crit-edit li span { margin-right: 6px; }
+.x-btn { color: var(--soft); font-size: 13px; padding: 0 6px; }
+.x-btn:hover { color: var(--ng); }
+.note-form { display: grid; gap: 8px; margin: 12px 0; }
+.note-form input { padding: 8px 12px; border-radius: 12px; border: 2px solid var(--line); }
+.notes { list-style: none; display: grid; gap: 8px; }
+.notes li { display: flex; justify-content: space-between; gap: 10px; padding: 10px 12px; border-radius: 12px; background: var(--bg); font-size: 14px; }
+.notes li.rule { background: #fff8e3; border: 1px solid var(--gold-light); }
+.note-actions { display: flex; align-items: flex-start; gap: 4px; flex: none; }
+.vote { font-size: 12px; font-weight: 700; padding: 2px 10px; border-radius: 99px; border: 2px solid var(--line); background: var(--card); white-space: nowrap; }
+.vote b { margin-left: 4px; font-family: var(--font-en); color: var(--gold); }
+.badge { margin-left: 6px; font-size: 11px; font-weight: 700; background: var(--gold); color: var(--navy); padding: 1px 8px; border-radius: 99px; }
+.pick-box { background: #fff8e3; border-radius: 12px; padding: 10px 14px; margin-bottom: 10px; font-size: 14px; }
+.pick-box ul { list-style: none; margin: 4px 0 6px; }
+.pick-box .rules { list-style: disc; padding-left: 20px; }
+.pick-box input { accent-color: var(--navy); margin-right: 4px; }
+
+.sheet { background: var(--card); border: 1px solid var(--line); border-radius: 20px; padding: 24px 20px; }
+.sheet-goal { font-size: 22px; line-height: 1.5; margin: 4px 0 16px; padding-bottom: 12px; border-bottom: 3px solid var(--gold); }
+.sheet-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 18px; }
+.sheet-item { margin-bottom: 14px; }
+.sheet-label { font-size: 12px; font-weight: 700; color: var(--gold); letter-spacing: .05em; }
+.sheet-text { white-space: pre-wrap; font-size: 14px; }
+.sheet-list { padding-left: 20px; font-size: 14px; }
+
+@media print {
+  .app-header, .play-bar, .toast { display: none !important; }
+  body { background: #fff; }
+  main { padding: 0; max-width: none; }
+  .sheet { border: none; padding: 0; }
+}
+
 /* ============ toast ============ */
 .toast {
   position: fixed; left: 50%; bottom: 24px; transform: translate(-50%, 20px);
@@ -300,4 +348,5 @@ textarea:focus, input:focus { outline: none; border-color: var(--gold); }
   .brief-card dl, .case-answer dl { grid-template-columns: 1fr; gap: 2px; }
   .brief-card dd, .case-answer dd { margin-bottom: 6px; }
   .dotbtn { width: 32px; height: 32px; }
+  .sheet-grid { grid-template-columns: 1fr; }
 }

@@ -4,7 +4,7 @@ const RANKS = ["Cub", "Young Lion", "Shortlist", "Finalist", "Bronze", "Silver",
 const SPARK_SEC = 600;
 
 function loadState() {
-  const base = { xp: 0, streak: 0, bestStreak: 0, lastDay: "", log: {}, sessions: [], active: "", sparkBest: 0, cases: {}, target: "", cat: "print", mode: "sprint" };
+  const base = { xp: 0, streak: 0, bestStreak: 0, lastDay: "", log: {}, sessions: [], active: "", sparkBest: 0, cases: {}, plan: { fields: {}, criteria: null, notes: [] }, target: "", cat: "print", mode: "sprint" };
   try {
     return Object.assign(base, JSON.parse(localStorage.getItem(STORE_KEY)) || {});
   } catch (e) {
@@ -105,6 +105,8 @@ function go(name) {
   if (name === "spark") renderSpark();
   if (name === "bank") renderBank();
   if (name === "learn") renderLearn();
+  if (name === "plan") renderPlan();
+  if (name === "plan-sheet") renderSheet();
 }
 document.addEventListener("click", e => {
   const el = e.target.closest("[data-go]");
@@ -156,6 +158,7 @@ function renderHome() {
   $("sparkMeta").textContent = state.sparkBest ? `自己ベスト ${state.sparkBest} 案` : "まずは10分";
   const unjudged = done.filter(s => !s.scores || Object.keys(s.scores).length < CRITERIA.length).length;
   $("bankMeta").textContent = unjudged ? `未審査 ${unjudged} 件` : `${done.length} 件`;
+  $("planMeta").textContent = planPct() ? `${planPct()}% 完成` : "まずはゴールから";
   $("learnMeta").textContent = `受賞作 ${Object.keys(state.cases).length} / ${CASES.length} 分解済み`;
 
   // 今週のメニュー
@@ -196,6 +199,10 @@ function renderBriefList() {
   $("catFocus").innerHTML = `<b>${esc(cat.ja)}部門の勝負どころ：</b>${esc(cat.focus)}<br><span class="muted">💡 ${esc(cat.tip)}</span>`;
   $("modeChips").innerHTML = MODES.map(m =>
     `<button type="button" class="chip-btn${m.id === state.mode ? " active" : ""}" data-mode="${m.id}">${esc(m.name)}<small>${esc(m.desc)}</small></button>`).join("");
+
+  const planCat = lines(state.plan.fields.category)[0];
+  $("planRemind").hidden = false;
+  $("planRemind").innerHTML = planCat ? `📋 勝ち筋シート：<b>${esc(planCat)}</b>` : "📋 まだ勝ち筋シートがありません。先に作っておこう →";
 
   const tried = new Set(state.sessions.map(s => s.briefId));
   $("briefList").innerHTML = BRIEFS.map(b => `
@@ -306,6 +313,15 @@ function renderPhase() {
   $("phaseText").placeholder = p.placeholder;
   $("phaseText").value = dojo.texts[p.id] || "";
   $("lensBox").hidden = !p.lens;
+  // 「選び抜く」では、勝ち筋シートの基準とマイルールを横に置いて判断する
+  $("pickBox").hidden = p.id !== "pick";
+  if (p.id === "pick") {
+    const rules = lines(state.plan.fields.rules);
+    $("pickBox").innerHTML = `
+      <p class="small"><b>📋 勝ち筋シートの基準</b>（全部に✔がつく案を選ぶ）</p>
+      <ul>${planCriteria().map(c => `<li><label><input type="checkbox"> ${esc(c)}</label></li>`).join("")}</ul>
+      ${rules.length ? `<p class="small"><b>マイルール</b></p><ul class="rules">${rules.map(r => `<li>${esc(r)}</li>`).join("")}</ul>` : ""}`;
+  }
   $("lensCard").hidden = true;
   $("phasePrev").disabled = dojo.phase === 0;
   $("phaseNext").textContent = dojo.phase === PHASES.length - 1 ? "✔ 提出する" : "次へ →";
@@ -544,6 +560,134 @@ $("judgeDelete").addEventListener("click", () => {
   saveState();
   go("bank");
 });
+
+// ============ plan（勝ち筋シート） ============
+const planCriteria = () => state.plan.criteria || DEFAULT_CRITERIA;
+function planPct() {
+  const filled = PLAN_FIELDS.filter(f => (state.plan.fields[f.id] || "").trim()).length + (state.plan.criteria ? 1 : 0);
+  return Math.round((filled / (PLAN_FIELDS.length + 1)) * 100);
+}
+function updatePlanProgress() {
+  const pct = planPct();
+  $("planFill").style.width = `${pct}%`;
+  $("planPct").textContent = `${pct}% 完成`;
+  if (pct === 100 && !state.plan.completed) {
+    state.plan.completed = true;
+    saveState();
+    addXp(50, true);
+    toast("🎉 勝ち筋シート完成！（+50 XP）");
+  }
+}
+
+function renderPlan() {
+  let group = "";
+  $("planForm").innerHTML = PLAN_FIELDS.map(f => {
+    const head = f.group !== group ? `${group ? "</div>" : ""}<div class="panel"><h3>${esc(f.group)}</h3>` : "";
+    group = f.group;
+    return `${head}<label class="field">${esc(f.label)}<textarea data-field="${f.id}" rows="${f.rows}" placeholder="${esc(f.hint)}">${esc(state.plan.fields[f.id] || "")}</textarea></label>`;
+  }).join("") + "</div>";
+  renderCritEdit();
+  renderNotes();
+  updatePlanProgress();
+}
+$("planForm").addEventListener("input", e => {
+  const t = e.target.closest("[data-field]");
+  if (!t) return;
+  state.plan.fields[t.dataset.field] = t.value;
+  saveState();
+  updatePlanProgress();
+});
+
+function renderCritEdit() {
+  $("critEdit").innerHTML = planCriteria().map((c, i) => `
+    <li><span>${esc(c)}</span><button type="button" class="x-btn" data-crit-del="${i}" aria-label="削除">✕</button></li>`).join("");
+}
+function setCriteria(list) {
+  state.plan.criteria = list;
+  saveState();
+  renderCritEdit();
+  updatePlanProgress();
+}
+$("critEdit").addEventListener("click", e => {
+  const b = e.target.closest("[data-crit-del]");
+  if (!b) return;
+  const list = [...planCriteria()];
+  list.splice(+b.dataset.critDel, 1);
+  setCriteria(list);
+});
+$("critAdd").addEventListener("submit", e => {
+  e.preventDefault();
+  const v = $("critInput").value.trim();
+  if (!v) return;
+  setCriteria([...planCriteria(), v]);
+  $("critInput").value = "";
+});
+
+function renderNotes() {
+  const notes = [...state.plan.notes].sort((a, b) => b.votes - a.votes || b.at - a.at);
+  $("noteCount").textContent = `${notes.length} 件`;
+  $("noteList").innerHTML = notes.map(n => `
+    <li class="${n.votes >= 2 ? "rule" : ""}">
+      <div>
+        <p>${esc(n.text)}</p>
+        <p class="muted small">${n.source ? esc(n.source) : "出典なし"}${n.votes >= 2 ? `<span class="badge">原則</span>` : ""}</p>
+      </div>
+      <div class="note-actions">
+        <button type="button" class="vote" data-vote="${n.at}" title="別の人も同じことを言っていた">＋1<b>${n.votes}</b></button>
+        <button type="button" class="x-btn" data-note-del="${n.at}" aria-label="削除">✕</button>
+      </div>
+    </li>`).join("");
+}
+$("noteForm").addEventListener("submit", e => {
+  e.preventDefault();
+  const text = $("noteText").value.trim();
+  if (!text) { toast("学んだことを書いてください"); return; }
+  state.plan.notes.push({ at: Date.now(), source: $("noteSource").value.trim(), text, votes: 1 });
+  saveState();
+  $("noteText").value = "";
+  renderNotes();
+  addXp(3, true);
+});
+$("noteList").addEventListener("click", e => {
+  const v = e.target.closest("[data-vote]"), d = e.target.closest("[data-note-del]");
+  if (v) {
+    const n = state.plan.notes.find(x => x.at === +v.dataset.vote);
+    n.votes++;
+    if (n.votes === 2) toast("2人以上が言っている → 原則に昇格。シートに反映しよう");
+  }
+  if (d) {
+    if (!confirm("このメモを削除しますか？")) return;
+    state.plan.notes = state.plan.notes.filter(x => x.at !== +d.dataset.noteDel);
+  }
+  saveState();
+  renderNotes();
+});
+
+$("planViewBtn").addEventListener("click", () => go("plan-sheet"));
+$("planPrint").addEventListener("click", () => window.print());
+
+function renderSheet() {
+  const f = state.plan.fields;
+  const block = (label, v) => `<div class="sheet-item"><p class="sheet-label">${esc(label)}</p><p class="sheet-text">${(v || "").trim() ? esc(v.trim()) : `<span class="muted">未記入</span>`}</p></div>`;
+  const rules = state.plan.notes.filter(n => n.votes >= 2).sort((a, b) => b.votes - a.votes);
+  $("planSheet").innerHTML = `
+    <p class="eyebrow">MY GAME PLAN</p>
+    <h2 class="sheet-goal">${(f.goal || "").trim() ? esc(f.goal.trim()) : "ゴール未設定"}</h2>
+    <div class="sheet-grid">
+      ${block("出る部門と理由", f.category)}
+      ${block("武器", f.strength)}
+      ${block("役割分担", f.partner)}
+      ${block("揉めた時の決め方", f.decide)}
+    </div>
+    ${block("時間配分", f.time)}
+    <div class="sheet-item"><p class="sheet-label">案を選ぶ基準</p><ol class="sheet-list">${planCriteria().map(c => `<li>${esc(c)}</li>`).join("")}</ol></div>
+    ${block("本番のマイルール", f.rules)}
+    ${rules.length ? `<div class="sheet-item"><p class="sheet-label">学んだ原則（2人以上が言っていること）</p><ul class="sheet-list">${rules.map(n => `<li>${esc(n.text)}</li>`).join("")}</ul></div>` : ""}
+    <div class="sheet-grid">
+      ${block("前回の作品", f.lastWork)}
+      ${block("GOLDとの差", f.lastGap)}
+    </div>`;
+}
 
 // ============ learn ============
 function renderLearn() {
